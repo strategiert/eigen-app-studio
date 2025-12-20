@@ -56,8 +56,7 @@ const Explore = () => {
       .from("learning_worlds")
       .select(`
         id, title, description, subject, thumbnail_url, created_at,
-        creator_id, fork_count, view_count, poetic_name, visual_theme,
-        profiles!learning_worlds_creator_id_fkey(display_name, avatar_url)
+        creator_id, fork_count, view_count, poetic_name, visual_theme
       `)
       .eq("is_public", true)
       .eq("status", "published");
@@ -83,7 +82,21 @@ const Explore = () => {
     const { data, error } = await query;
 
     if (!error && data) {
-      setWorlds(data as unknown as PublicWorld[]);
+      // Fetch profiles separately to avoid JOIN issues
+      const creatorIds = [...new Set(data.map(w => w.creator_id))];
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("id, display_name, avatar_url")
+        .in("id", creatorIds);
+
+      const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+
+      const worldsWithProfiles = data.map(world => ({
+        ...world,
+        profiles: profilesMap.get(world.creator_id) || null
+      }));
+
+      setWorlds(worldsWithProfiles as unknown as PublicWorld[]);
       
       // Fetch ratings for all worlds
       const ratings: Record<string, { average: number; count: number }> = {};

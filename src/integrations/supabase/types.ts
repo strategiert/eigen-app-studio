@@ -180,6 +180,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_followers: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_followers_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_followers_following_id_fkey"
+            columns: ["following_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_progress: {
         Row: {
           attempts: number
@@ -292,6 +328,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_follower_count: { Args: { user_uuid: string }; Returns: number }
+      get_following_count: { Args: { user_uuid: string }; Returns: number }
       get_world_rating: {
         Args: { world_uuid: string }
         Returns: {

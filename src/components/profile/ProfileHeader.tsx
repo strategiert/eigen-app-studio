@@ -1,8 +1,11 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Globe, School, BookOpen, Star, Eye, GitFork, Settings } from "lucide-react";
+import { Globe, School, BookOpen, Star, Eye, GitFork, Settings, Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { FollowButton } from "./FollowButton";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProfileHeaderProps {
   profile: {
@@ -21,10 +24,28 @@ interface ProfileHeaderProps {
     averageRating: number;
   };
   isOwnProfile: boolean;
+  currentUserId?: string;
   onEdit?: () => void;
 }
 
-export const ProfileHeader = ({ profile, stats, isOwnProfile, onEdit }: ProfileHeaderProps) => {
+export const ProfileHeader = ({ profile, stats, isOwnProfile, currentUserId, onEdit }: ProfileHeaderProps) => {
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+
+  useEffect(() => {
+    fetchFollowCounts();
+  }, [profile.id]);
+
+  const fetchFollowCounts = async () => {
+    const [{ data: followers }, { data: following }] = await Promise.all([
+      supabase.rpc("get_follower_count", { user_uuid: profile.id }),
+      supabase.rpc("get_following_count", { user_uuid: profile.id })
+    ]);
+    
+    setFollowerCount(Number(followers) || 0);
+    setFollowingCount(Number(following) || 0);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -47,6 +68,12 @@ export const ProfileHeader = ({ profile, stats, isOwnProfile, onEdit }: ProfileH
               <h1 className="text-2xl md:text-3xl font-bold">
                 {profile.display_name || "Anonym"}
               </h1>
+              
+              {/* Follower Stats */}
+              <div className="flex items-center gap-4 mt-2 text-sm">
+                <span className="font-medium">{followerCount} <span className="text-muted-foreground">Follower</span></span>
+                <span className="font-medium">{followingCount} <span className="text-muted-foreground">Folgt</span></span>
+              </div>
               
               <div className="flex flex-wrap items-center gap-3 mt-2 text-muted-foreground">
                 {profile.school && (
@@ -74,12 +101,21 @@ export const ProfileHeader = ({ profile, stats, isOwnProfile, onEdit }: ProfileH
               </div>
             </div>
 
-            {isOwnProfile && (
-              <Button variant="outline" size="sm" onClick={onEdit}>
-                <Settings className="h-4 w-4 mr-2" />
-                Bearbeiten
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {!isOwnProfile && currentUserId && (
+                <FollowButton 
+                  userId={profile.id} 
+                  currentUserId={currentUserId}
+                  onFollowChange={fetchFollowCounts}
+                />
+              )}
+              {isOwnProfile && (
+                <Button variant="outline" size="sm" onClick={onEdit}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Bearbeiten
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Bio */}
