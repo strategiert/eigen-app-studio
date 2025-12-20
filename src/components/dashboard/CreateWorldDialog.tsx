@@ -261,19 +261,21 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
       const detectedSubject = contentAnalysis?.theme?.mainTopic?.toLowerCase() || subject;
       const finalSubject = subject === 'allgemein' ? detectSubjectFromAnalysis(contentAnalysis) : subject;
 
-      // Create the learning world with the unique visual theme AND full world_design
+      // Create the learning world with AI-generated design
       const { data: world, error: worldError } = await supabase
         .from("learning_worlds")
         .insert({
           title,
           subject: finalSubject,
           creator_id: user.id,
-          poetic_name: aiData.poeticName || worldDesign?.worldConcept?.name || null,
-          description: aiData.description || worldDesign?.worldConcept?.tagline || null,
+          poetic_name: worldDesign?.worldConcept?.name || title,
+          description: worldDesign?.worldConcept?.tagline || null,
           source_content: sourceContent,
           generated_code: JSON.stringify({ contentAnalysis, worldDesign, aiData }),
-          visual_theme: aiData.visualTheme || {},
-          world_design: worldDesign || {}, // Store complete AI-generated design
+          // visual_theme is DEPRECATED - use world_design instead
+          visual_theme: worldDesign?.visualIdentity || {},
+          // world_design contains the COMPLETE AI-generated design
+          world_design: worldDesign || {},
           detected_subject: finalSubject,
           status: "draft",
           moon_phase: "neumond",
@@ -283,8 +285,8 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
 
       if (worldError) throw worldError;
 
-      // Create the learning sections/modules with image prompts
-      if (aiData.sections && world) {
+      // Create the learning sections/modules - ENFORCE design from worldDesign
+      if (aiData.sections && world && worldDesign?.moduleDesigns) {
         const sections = aiData.sections.map((section: {
           title: string;
           content: string;
@@ -292,16 +294,28 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
           componentType: string;
           componentData: Record<string, unknown>;
           imagePrompt?: string;
-        }, index: number) => ({
-          world_id: world.id,
-          title: section.title,
-          content: section.content,
-          module_type: section.moduleType || "knowledge",
-          component_type: section.componentType || "text",
-          component_data: section.componentData || {},
-          image_prompt: section.imagePrompt || null,
-          order_index: index,
-        }));
+        }, index: number) => {
+          // Find matching design from worldDesign (by index or title match)
+          const matchingDesign = worldDesign.moduleDesigns[index] ||
+            worldDesign.moduleDesigns.find((d: any) =>
+              d.title.toLowerCase().includes(section.title.toLowerCase()) ||
+              section.title.toLowerCase().includes(d.title.toLowerCase())
+            );
+
+          return {
+            world_id: world.id,
+            // Use title from worldDesign if available, otherwise from AI
+            title: matchingDesign?.title || section.title,
+            content: section.content,
+            // FORCE moduleType from worldDesign
+            module_type: matchingDesign?.moduleType || section.moduleType || "knowledge",
+            component_type: section.componentType || "text",
+            component_data: section.componentData || {},
+            // FORCE imagePrompt from worldDesign
+            image_prompt: matchingDesign?.imagePrompt || section.imagePrompt || null,
+            order_index: index,
+          };
+        });
 
         const { data: createdSections, error: sectionsError } = await supabase
           .from("learning_sections")
