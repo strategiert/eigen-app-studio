@@ -187,6 +187,7 @@ const Dashboard = () => {
                   setDeleteDialogOpen(true);
                 }}
                 onView={(id) => navigate(`/w/${id}`)}
+                onWorldUpdated={fetchWorlds}
               />
             ))}
           </div>
