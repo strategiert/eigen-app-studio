@@ -21,6 +21,8 @@ export type Database = {
           content: string | null
           created_at: string
           id: string
+          image_prompt: string | null
+          image_url: string | null
           module_type: string | null
           order_index: number
           title: string
@@ -32,6 +34,8 @@ export type Database = {
           content?: string | null
           created_at?: string
           id?: string
+          image_prompt?: string | null
+          image_url?: string | null
           module_type?: string | null
           order_index?: number
           title: string
@@ -43,6 +47,8 @@ export type Database = {
           content?: string | null
           created_at?: string
           id?: string
+          image_prompt?: string | null
+          image_url?: string | null
           module_type?: string | null
           order_index?: number
           title?: string

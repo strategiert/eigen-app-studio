@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button';
 import { WorldHeader } from '@/components/world/WorldHeader';
 import { SectionNavigation } from '@/components/world/SectionNavigation';
 import { ModuleRenderer } from '@/components/world/ModuleRenderer';
+import { CompletionCelebration, StarCollectAnimation } from '@/components/world/CompletionCelebration';
 import { useWorldProgress } from '@/hooks/useWorldProgress';
+import { useAuth } from '@/hooks/useAuth';
 import { getSubjectTheme, type SubjectType, type MoonPhase } from '@/lib/subjectTheme';
 import type { Json } from '@/integrations/supabase/types';
 
@@ -31,21 +33,30 @@ interface LearningModule {
   component_type: string;
   component_data: Json;
   order_index: number;
+  image_url: string | null;
+  image_prompt: string | null;
 }
 
 export default function WorldView() {
   const { worldId } = useParams<{ worldId: string }>();
+  const { user } = useAuth();
   const [world, setWorld] = useState<LearningWorld | null>(null);
   const [modules, setModules] = useState<LearningModule[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentModuleIndex, setCurrentModuleIndex] = useState(0);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationType, setCelebrationType] = useState<'section' | 'world'>('section');
+  const [showStars, setShowStars] = useState(false);
+  const [lastEarnedStars, setLastEarnedStars] = useState(0);
 
   const {
     progress,
     updateSectionProgress,
     isSectionCompleted
   } = useWorldProgress(worldId || '', modules.length);
+
+  const isCreator = user?.id === world?.creator_id;
 
   // Fetch world and modules
   useEffect(() => {
@@ -117,7 +128,29 @@ export default function WorldView() {
   const currentModule = modules[currentModuleIndex];
 
   const handleModuleComplete = async (moduleId: string, score: number, maxScore: number) => {
+    const wasCompleted = isSectionCompleted(moduleId);
     await updateSectionProgress(moduleId, score, maxScore, true);
+    
+    // Calculate stars earned (1 star per correct answer, max 5)
+    const starsEarned = Math.min(Math.round((score / maxScore) * 5), 5);
+    
+    if (!wasCompleted && starsEarned > 0) {
+      setLastEarnedStars(starsEarned);
+      setShowStars(true);
+    }
+
+    // Check if this was the last module
+    const allCompleted = modules.every(m => 
+      m.id === moduleId || isSectionCompleted(m.id)
+    );
+    
+    if (allCompleted) {
+      setCelebrationType('world');
+      setShowCelebration(true);
+    } else if (!wasCompleted) {
+      setCelebrationType('section');
+      setShowCelebration(true);
+    }
   };
 
   const handleNavigate = (index: number) => {
@@ -245,11 +278,14 @@ export default function WorldView() {
                   component_data: currentModule.component_data as Record<string, unknown>
                 }}
                 subjectColor={theme?.color || 'hsl(var(--primary))'}
+                worldId={worldId || ''}
+                subject={world.subject}
                 onComplete={handleModuleComplete}
                 onContinue={handleNext}
                 isCompleted={isSectionCompleted(currentModule.id)}
                 previousScore={progress.sections[currentModule.id]?.score}
                 isLastModule={currentModuleIndex === modules.length - 1}
+                isCreator={isCreator}
               />
             </motion.div>
           </AnimatePresence>
@@ -282,6 +318,20 @@ export default function WorldView() {
           </Button>
         </div>
       </main>
+
+      {/* Celebration animations */}
+      <CompletionCelebration
+        show={showCelebration}
+        type={celebrationType}
+        stars={progress.totalStars}
+        onComplete={() => setShowCelebration(false)}
+      />
+
+      <StarCollectAnimation
+        show={showStars}
+        count={lastEarnedStars}
+        onComplete={() => setShowStars(false)}
+      />
     </div>
   );
 }
