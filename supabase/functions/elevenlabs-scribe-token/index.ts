@@ -45,10 +45,18 @@ serve(async (req) => {
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
-      .single();
+      .in('role', ['creator', 'admin']);
 
-    if (roleError || !roleData || !['creator', 'admin'].includes(roleData.role)) {
-      console.error('Role check failed:', roleError, roleData);
+    if (roleError) {
+      console.error('Role check failed:', roleError);
+      return new Response(JSON.stringify({ error: 'Error checking permissions.' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!roleData || roleData.length === 0) {
+      console.error('No creator/admin role found for user:', user.id);
       return new Response(JSON.stringify({ error: 'Insufficient permissions. Creator or admin role required.' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
