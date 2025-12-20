@@ -51,6 +51,15 @@ const moonPhaseIcons: Record<string, string> = {
   abnehmend: "🌘",
 };
 
+const generationStages = [
+  { key: 'pending', label: 'Vorbereiten', order: 1 },
+  { key: 'analyzing', label: 'Analysieren', order: 2 },
+  { key: 'designing', label: 'Gestalten', order: 3 },
+  { key: 'generating', label: 'Generieren', order: 4 },
+  { key: 'finalizing', label: 'Speichern', order: 5 },
+  { key: 'images', label: 'Bilder', order: 6 },
+];
+
 const generationStageLabels: Record<string, string> = {
   pending: "Wird vorbereitet...",
   analyzing: "Analysiere Inhalt...",
@@ -61,6 +70,12 @@ const generationStageLabels: Record<string, string> = {
   complete: "Fertig!",
   error: "Fehler",
   idle: "",
+};
+
+const getCurrentStageIndex = (status: string | null | undefined): number => {
+  if (!status) return 0;
+  const stage = generationStages.find(s => s.key === status);
+  return stage ? stage.order : 0;
 };
 
 export const WorldCard = ({ world, onEdit, onDelete, onView, onWorldUpdated }: WorldCardProps) => {
@@ -162,27 +177,42 @@ export const WorldCard = ({ world, onEdit, onDelete, onView, onWorldUpdated }: W
             )}
             
             {isGenerating && (
-              <div className="h-10 flex items-center">
-                <div className="flex gap-1">
-                  {[0, 1, 2].map((i) => (
-                    <motion.div
-                      key={i}
-                      className="w-2 h-2 rounded-full bg-moon"
-                      animate={{
-                        scale: [1, 1.3, 1],
-                        opacity: [0.5, 1, 0.5],
-                      }}
-                      transition={{
-                        duration: 1,
-                        repeat: Infinity,
-                        delay: i * 0.2,
-                      }}
-                    />
-                  ))}
+              <div className="space-y-3">
+                {/* Progress steps */}
+                <div className="flex items-center justify-between gap-1">
+                  {generationStages.map((stage, i) => {
+                    const currentIndex = getCurrentStageIndex(world.generation_status);
+                    const isActive = stage.order === currentIndex;
+                    const isCompleted = stage.order < currentIndex;
+                    
+                    return (
+                      <div key={stage.key} className="flex-1 flex flex-col items-center gap-1">
+                        <motion.div
+                          className={`w-full h-1.5 rounded-full ${
+                            isCompleted 
+                              ? 'bg-moon' 
+                              : isActive 
+                                ? 'bg-moon/50' 
+                                : 'bg-muted'
+                          }`}
+                          animate={isActive ? {
+                            opacity: [0.5, 1, 0.5],
+                          } : {}}
+                          transition={{
+                            duration: 1,
+                            repeat: Infinity,
+                          }}
+                        />
+                        <span className={`text-[10px] ${
+                          isActive ? 'text-moon font-medium' : 
+                          isCompleted ? 'text-moon/70' : 'text-muted-foreground/50'
+                        }`}>
+                          {stage.label}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
-                <span className="ml-3 text-sm text-muted-foreground">
-                  Bitte warten...
-                </span>
               </div>
             )}
             

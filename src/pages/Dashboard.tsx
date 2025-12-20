@@ -90,13 +90,22 @@ const Dashboard = () => {
           } else if (payload.eventType === 'UPDATE') {
             const updatedWorld = payload.new as LearningWorld;
             
-            setWorlds(prevWorlds => 
-              prevWorlds.map(w => 
-                w.id === updatedWorld.id ? { ...w, ...updatedWorld } : w
-              )
-            );
+            setWorlds(prevWorlds => {
+              // Check if world exists in list
+              const exists = prevWorlds.some(w => w.id === updatedWorld.id);
+              if (exists) {
+                // Update existing world
+                return prevWorlds.map(w => 
+                  w.id === updatedWorld.id ? { ...w, ...updatedWorld } : w
+                );
+              } else {
+                // World not in list yet (INSERT was missed) - add it
+                console.log('World not in list, adding:', updatedWorld.id);
+                return [updatedWorld, ...prevWorlds];
+              }
+            });
 
-            // Show toast and refresh when generation completes
+            // Show toast for status changes
             if (updatedWorld.generation_status === 'complete') {
               toast({
                 title: "Lernwelt fertig! ✨",
