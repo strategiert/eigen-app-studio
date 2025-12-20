@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, BookOpen, Pencil, Brain, Zap, ChevronRight, Check } from 'lucide-react';
+import { ChevronRight, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { TextSection } from './sections/TextSection';
@@ -8,41 +8,8 @@ import { QuizSection } from './sections/QuizSection';
 import { FillInBlanksSection } from './sections/FillInBlanksSection';
 import { MatchingSection } from './sections/MatchingSection';
 import { ModuleImage } from './ModuleImage';
-// Module type definitions
-const MODULE_TYPES = {
-  discovery: {
-    label: 'Entdecken',
-    icon: Search,
-    color: 'hsl(45, 93%, 47%)', // Warm gold
-    description: 'Neugier wecken'
-  },
-  knowledge: {
-    label: 'Wissen',
-    icon: BookOpen,
-    color: 'hsl(210, 79%, 46%)', // Blue
-    description: 'Verstehen & Lernen'
-  },
-  practice: {
-    label: 'Üben',
-    icon: Pencil,
-    color: 'hsl(142, 71%, 45%)', // Green
-    description: 'Anwenden'
-  },
-  reflection: {
-    label: 'Reflektieren',
-    icon: Brain,
-    color: 'hsl(280, 65%, 60%)', // Purple
-    description: 'Nachdenken'
-  },
-  challenge: {
-    label: 'Herausforderung',
-    icon: Zap,
-    color: 'hsl(16, 90%, 50%)', // Orange
-    description: 'Vertiefen'
-  }
-} as const;
-
-type ModuleType = keyof typeof MODULE_TYPES;
+import type { WorldDesign } from '@/lib/worldDesignTypes';
+import { getWorldPrimaryColor, getWorldAccentColor } from '@/lib/worldDesignTypes';
 
 interface QuizQuestion {
   question: string;
@@ -92,6 +59,7 @@ interface ModuleRendererProps {
   subjectColor: string;
   worldId: string;
   subject: string;
+  worldDesign: WorldDesign | null;
   onComplete: (moduleId: string, score: number, maxScore: number) => void;
   onContinue: () => void;
   isCompleted: boolean;
@@ -105,6 +73,7 @@ export function ModuleRenderer({
   subjectColor,
   worldId,
   subject,
+  worldDesign,
   onComplete,
   onContinue,
   isCompleted,
@@ -115,9 +84,28 @@ export function ModuleRenderer({
   const [currentComponentIndex, setCurrentComponentIndex] = useState(0);
   const [componentScores, setComponentScores] = useState<Map<number, { score: number; maxScore: number }>>(new Map());
 
-  const moduleType = (module.module_type || 'knowledge') as ModuleType;
-  const moduleConfig = MODULE_TYPES[moduleType] || MODULE_TYPES.knowledge;
-  const ModuleIcon = moduleConfig.icon;
+  // Use world-specific colors from AI-generated design
+  const primaryColor = getWorldPrimaryColor(worldDesign);
+  const accentColor = getWorldAccentColor(worldDesign);
+  
+  // Get module design from worldDesign if available
+  const moduleDesigns = worldDesign?.moduleDesigns || [];
+  const currentModuleDesign = moduleDesigns.find(md => 
+    md.title.toLowerCase() === module.title.toLowerCase()
+  ) || moduleDesigns[0];
+  
+  // Module type labels in German
+  const moduleTypeLabels: Record<string, string> = {
+    discovery: 'Entdecken',
+    knowledge: 'Wissen',
+    practice: 'Üben',
+    reflection: 'Reflektieren',
+    challenge: 'Herausforderung'
+  };
+  
+  const moduleTypeLabel = moduleTypeLabels[module.module_type] || 'Wissen';
+
+  const moduleType = module.module_type || 'knowledge';
 
   // Get components from the module
   const components: Component[] = useMemo(() => {
@@ -247,22 +235,22 @@ export function ModuleRenderer({
       transition={{ duration: 0.4 }}
       className="space-y-4"
     >
-      {/* Module Header */}
+      {/* Module Header - uses world-specific colors */}
       <div 
         className="rounded-xl p-4 border"
         style={{ 
-          borderColor: moduleConfig.color,
-          background: `linear-gradient(135deg, ${moduleConfig.color}10, transparent)`
+          borderColor: primaryColor,
+          background: `linear-gradient(135deg, ${primaryColor}10, transparent)`
         }}
       >
         <div className="flex items-center gap-3">
           <div 
             className="p-2 rounded-lg"
-            style={{ backgroundColor: `${moduleConfig.color}20` }}
+            style={{ backgroundColor: `${primaryColor}20` }}
           >
-            <ModuleIcon 
-              className="h-5 w-5" 
-              style={{ color: moduleConfig.color }}
+            <div 
+              className="w-5 h-5 rounded-full" 
+              style={{ backgroundColor: accentColor }}
             />
           </div>
           <div className="flex-1">
@@ -271,19 +259,24 @@ export function ModuleRenderer({
                 variant="outline" 
                 className="text-xs"
                 style={{ 
-                  borderColor: moduleConfig.color,
-                  color: moduleConfig.color
+                  borderColor: primaryColor,
+                  color: primaryColor
                 }}
               >
-                {moduleConfig.label}
+                {moduleTypeLabel}
               </Badge>
               {isCompleted && (
                 <Check className="h-4 w-4 text-green-500" />
               )}
             </div>
             <h2 className="text-xl font-semibold text-foreground mt-1">
-              {module.title}
+              {currentModuleDesign?.title || module.title}
             </h2>
+            {currentModuleDesign?.visualFocus && (
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {currentModuleDesign.visualFocus}
+              </p>
+            )}
           </div>
         </div>
 
@@ -301,7 +294,7 @@ export function ModuleRenderer({
                     ? "bg-primary"
                     : "bg-muted"
                 )}
-                style={idx === currentComponentIndex ? { backgroundColor: moduleConfig.color } : {}}
+                style={idx === currentComponentIndex ? { backgroundColor: primaryColor } : {}}
               />
             ))}
             <span className="text-xs text-muted-foreground ml-2">
@@ -353,7 +346,7 @@ export function ModuleRenderer({
           <button
             onClick={() => setCurrentComponentIndex(currentComponentIndex + 1)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-accent"
-            style={{ color: moduleConfig.color }}
+            style={{ color: primaryColor }}
           >
             Weiter zur nächsten Aufgabe
             <ChevronRight className="h-4 w-4" />

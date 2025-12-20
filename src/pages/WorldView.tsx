@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { WorldHeader } from '@/components/world/WorldHeader';
-import { SectionNavigation } from '@/components/world/SectionNavigation';
+import { DynamicWorldHeader } from '@/components/world/DynamicWorldHeader';
+import { DynamicSectionNavigation } from '@/components/world/DynamicSectionNavigation';
 import { ModuleRenderer } from '@/components/world/ModuleRenderer';
 import { CompletionCelebration, StarCollectAnimation } from '@/components/world/CompletionCelebration';
 import { FloatingStars } from '@/components/world/StarProgress';
@@ -16,21 +16,21 @@ import { ForkWorldButton } from '@/components/world/ForkWorldButton';
 import { CreatorBadge } from '@/components/world/CreatorBadge';
 import { useWorldProgress } from '@/hooks/useWorldProgress';
 import { useAuth } from '@/hooks/useAuth';
-import { getSubjectTheme, type SubjectType, type MoonPhase } from '@/lib/subjectTheme';
-import { type WorldVisualTheme, getWorldGradient, getWorldPattern } from '@/lib/worldTheme';
+import type { WorldDesign } from '@/lib/worldDesignTypes';
+import { getWorldGradient, getWorldPattern, getWorldPrimaryColor } from '@/lib/worldDesignTypes';
 import type { Json } from '@/integrations/supabase/types';
 
 interface LearningWorld {
   id: string;
   title: string;
   poetic_name: string | null;
-  subject: SubjectType;
-  moon_phase: MoonPhase;
+  subject: string;
+  moon_phase: string;
   description: string | null;
   is_public: boolean;
   status: string;
   creator_id: string;
-  visual_theme: WorldVisualTheme | null;
+  world_design: WorldDesign | null;
 }
 
 interface LearningModule {
@@ -96,7 +96,7 @@ export default function WorldView() {
 
         setWorld({
           ...worldData,
-          visual_theme: worldData.visual_theme as unknown as WorldVisualTheme | null
+          world_design: worldData.world_design as unknown as WorldDesign | null
         } as LearningWorld);
 
         // Fetch creator profile
@@ -177,29 +177,22 @@ export default function WorldView() {
     });
   };
 
-  const subjectTheme = useMemo(() => {
-    return world ? getSubjectTheme(world.subject) : null;
-  }, [world?.subject]);
+  // Use AI-generated world design for all styling
+  const worldDesign = useMemo(() => {
+    return world?.world_design || null;
+  }, [world?.world_design]);
 
-  const visualTheme = useMemo(() => {
-    // Each world MUST have its own unique theme - no fallbacks
-    const theme = world?.visual_theme;
-    if (theme && typeof theme === 'object' && 'primaryHue' in theme) {
-      return theme;
-    }
-    // Return null if no valid theme - world needs regeneration
-    return null;
-  }, [world?.visual_theme]);
+  const primaryColor = useMemo(() => {
+    return getWorldPrimaryColor(worldDesign);
+  }, [worldDesign]);
 
   const worldBackground = useMemo(() => {
-    if (!visualTheme) return undefined;
-    return getWorldGradient(visualTheme);
-  }, [visualTheme]);
+    return getWorldGradient(worldDesign);
+  }, [worldDesign]);
 
   const worldPattern = useMemo(() => {
-    if (!visualTheme) return undefined;
-    return getWorldPattern(visualTheme);
-  }, [visualTheme]);
+    return getWorldPattern(worldDesign);
+  }, [worldDesign]);
 
   const completedModules = useMemo(() => {
     return new Set(
@@ -305,11 +298,10 @@ export default function WorldView() {
   if (modules.length === 0) {
     return (
       <div className="min-h-screen bg-background">
-        <WorldHeader
+        <DynamicWorldHeader
           title={world.title}
           poeticName={world.poetic_name}
-          subject={world.subject}
-          moonPhase={world.moon_phase}
+          worldDesign={worldDesign}
           totalStars={0}
           completedSections={0}
           totalSections={0}
@@ -339,12 +331,11 @@ export default function WorldView() {
       {/* Floating stars background */}
       <FloatingStars count={6} />
 
-      {/* Header */}
-      <WorldHeader
+      {/* Header - uses AI-generated world design */}
+      <DynamicWorldHeader
         title={world.title}
         poeticName={world.poetic_name}
-        subject={world.subject}
-        moonPhase={world.moon_phase}
+        worldDesign={worldDesign}
         totalStars={progress.totalStars}
         completedSections={progress.completedSections}
         totalSections={modules.length}
@@ -380,8 +371,8 @@ export default function WorldView() {
 
       {/* Main content - Mobile optimized */}
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 relative z-10">
-        {/* Module navigation */}
-        <SectionNavigation
+        {/* Module navigation - uses AI-generated world design */}
+        <DynamicSectionNavigation
           sections={modules.map(m => ({
             id: m.id,
             title: m.title,
@@ -391,7 +382,7 @@ export default function WorldView() {
           currentIndex={currentModuleIndex}
           completedSections={completedModules}
           onNavigate={handleNavigate}
-          subjectColor={subjectTheme?.color || 'hsl(var(--primary))'}
+          worldDesign={worldDesign}
         />
 
         {/* Current module */}
@@ -409,9 +400,10 @@ export default function WorldView() {
                   ...currentModule,
                   component_data: currentModule.component_data as Record<string, unknown>
                 }}
-                subjectColor={subjectTheme?.color || 'hsl(var(--primary))'}
+                subjectColor={primaryColor}
                 worldId={worldId || ''}
                 subject={world.subject}
+                worldDesign={worldDesign}
                 onComplete={handleModuleComplete}
                 onContinue={handleNext}
                 isCompleted={isSectionCompleted(currentModule.id)}
@@ -455,7 +447,7 @@ export default function WorldView() {
             disabled={currentModuleIndex === modules.length - 1}
             size="sm"
             className="gap-1 sm:gap-2 h-9 sm:h-10 px-3 sm:px-4"
-            style={{ backgroundColor: subjectTheme?.color }}
+            style={{ backgroundColor: primaryColor }}
           >
             <span className="hidden sm:inline">Weiter</span>
             <ChevronRight className="h-4 w-4" />
