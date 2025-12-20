@@ -199,187 +199,7 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
     try {
       logger.userAction('create_world_started', { title, contentLength: sourceContent.length });
 
-      // PHASE 1: Analyze Content
-      logger.info("Phase 1: Analyzing content...", { component: 'CreateWorldDialog', phase: 1 });
-
-      const contentAnalysis = await retrySupabaseFunction(
-        "analyze-content",
-        { title, sourceContent },
-        (name, opts) => supabase.functions.invoke(name, opts)
-      );
-
-      logger.info("Content analysis complete", {
-        component: 'CreateWorldDialog',
-        mainTopic: contentAnalysis?.theme?.mainTopic
-      });
-
-      // PHASE 2: Design World
-      setGenerationStage("designing");
-      logger.info("Phase 2: Designing world...", { component: 'CreateWorldDialog', phase: 2 });
-
-      const worldDesign = await retrySupabaseFunction(
-        "design-world",
-        { title, contentAnalysis },
-        (name, opts) => supabase.functions.invoke(name, opts)
-      );
-
-      logger.info("World design complete", {
-        component: 'CreateWorldDialog',
-        worldName: worldDesign?.worldConcept?.name
-      });
-
-      // PHASE 3: Generate Content
-      setGenerationStage("generating");
-      logger.info("Phase 3: Generating content...", { component: 'CreateWorldDialog', phase: 3 });
-
-      const aiData = await retrySupabaseFunction(
-        "generate-content",
-        { title, sourceContent, worldDesign, contentAnalysis },
-        (name, opts) => supabase.functions.invoke(name, opts)
-      );
-
-      logger.info("Content generation complete", {
-        component: 'CreateWorldDialog',
-        sectionCount: aiData?.sections?.length
-      });
-
-      setGenerationStage("finalizing");
-
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Nicht angemeldet");
-
-      // Detect subject from content analysis
-      const detectedSubject = contentAnalysis?.theme?.mainTopic?.toLowerCase() || subject;
-      const finalSubject = subject === 'allgemein' ? detectSubjectFromAnalysis(contentAnalysis) : subject;
-
-      // Create the learning world with AI-generated design
-      const { data: world, error: worldError } = await supabase
-        .from("learning_worlds")
-        .insert({
-          title,
-          subject: finalSubject,
-          creator_id: user.id,
-          poetic_name: worldDesign?.worldConcept?.name || title,
-          description: worldDesign?.worldConcept?.tagline || null,
-          source_content: sourceContent,
-          generated_code: JSON.stringify({ contentAnalysis, worldDesign, aiData }),
-          // visual_theme is DEPRECATED - use world_design instead
-          visual_theme: worldDesign?.visualIdentity || {},
-          // world_design contains the COMPLETE AI-generated design
-          world_design: worldDesign || {},
-          detected_subject: finalSubject,
-          status: "draft",
-          moon_phase: "neumond",
-        })
-        .select()
-        .single();
-
-      if (worldError) throw worldError;
-
-      // Create the learning sections/modules - ENFORCE design from worldDesign
-      if (aiData.sections && world && worldDesign?.moduleDesigns) {
-        const sections = aiData.sections.map((section: {
-          title: string;
-          content: string;
-          moduleType?: string;
-          componentType: string;
-          componentData: Record<string, unknown>;
-          imagePrompt?: string;
-        }, index: number) => {
-          // Find matching design from worldDesign (by index or title match)
-          const matchingDesign = worldDesign.moduleDesigns[index] ||
-            worldDesign.moduleDesigns.find((d: any) =>
-              d.title.toLowerCase().includes(section.title.toLowerCase()) ||
-              section.title.toLowerCase().includes(d.title.toLowerCase())
-            );
-
-          return {
-            world_id: world.id,
-            // Use title from worldDesign if available, otherwise from AI
-            title: matchingDesign?.title || section.title,
-            content: section.content,
-            // FORCE moduleType from worldDesign
-            module_type: matchingDesign?.moduleType || section.moduleType || "knowledge",
-            component_type: section.componentType || "text",
-            component_data: section.componentData || {},
-            // FORCE imagePrompt from worldDesign
-            image_prompt: matchingDesign?.imagePrompt || section.imagePrompt || null,
-            order_index: index,
-          };
-        });
-
-        const { data: createdSections, error: sectionsError } = await supabase
-          .from("learning_sections")
-          .insert(sections)
-          .select();
-
-        if (sectionsError) {
-          console.error("Error creating sections:", sectionsError);
-        }
-
-        // Generate images for each section in the background
-        if (createdSections && createdSections.length > 0) {
-          setGenerationStage("images");
-          
-          // Generate images for first 3 sections to save time
-          const sectionsToGenerate = createdSections.slice(0, 3);
-          
-          for (const section of sectionsToGenerate) {
-            if (section.image_prompt) {
-              try {
-                await supabase.functions.invoke("generate-image", {
-                  body: {
-                    prompt: section.image_prompt,
-                    sectionId: section.id,
-                    worldId: world.id,
-                    subject: finalSubject,
-                    styleHint: aiData.visualTheme?.styleHint || '',
-                  },
-                });
-              } catch (imgError) {
-                console.error("Error generating image for section:", section.id, imgError);
-              }
-            }
-          }
-        }
-      }
-
-      setGenerationStage("complete");
-
-      setTimeout(() => {
-        toast({
-          title: "Lernwelt erstellt! ✨",
-          description: `"${title}" wurde erfolgreich generiert.`,
-        });
-        handleClose();
-        onWorldCreated();
-      }, 1500);
-    } catch (error) {
-      logger.error("Failed to create world", error, {
-        component: 'CreateWorldDialog',
-        title,
-        stage: generationStage
-      });
-
-      // Determine user-friendly error message
-      let userMessage = "Konnte die Lernwelt nicht erstellen.";
-      if (error instanceof Error) {
-        if (error.message.includes('rate limit')) {
-          userMessage = "Zu viele Anfragen. Bitte versuche es in ein paar Minuten erneut.";
-        } else if (error.message.includes('timeout')) {
-          userMessage = "Die Generierung hat zu lange gedauert. Bitte versuche es erneut.";
-        } else if (error.message.includes('Nicht angemeldet')) {
-          userMessage = "Du musst angemeldet sein. Bitte melde dich erneut an.";
-        } else {
-          userMessage = error.message;
-        }
-      }
-
-      toast({
-        title: "Fehler",
-        description: userMessage,
-      // Call the new start-generation edge function
+      // Call the start-generation edge function
       const { data, error } = await supabase.functions.invoke("start-generation", {
         body: { title, subject, sourceContent },
       });
@@ -397,16 +217,33 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
       // Close dialog and show success toast
       toast({
         title: "Generierung gestartet! ✨",
-        description: `"${title}" wird im Hintergrund erstellt. Du kannst den Tab verlassen.`,
+        description: `"${title}" wird im Hintergrund erstellt.`,
       });
 
       handleClose();
       onWorldCreated();
     } catch (error) {
-      console.error("Error starting generation:", error);
+      logger.error("Failed to start generation", error, {
+        component: 'CreateWorldDialog',
+        title,
+      });
+
+      let userMessage = "Konnte die Generierung nicht starten.";
+      if (error instanceof Error) {
+        if (error.message.includes('rate limit')) {
+          userMessage = "Zu viele Anfragen. Bitte versuche es in ein paar Minuten erneut.";
+        } else if (error.message.includes('timeout')) {
+          userMessage = "Die Generierung hat zu lange gedauert. Bitte versuche es erneut.";
+        } else if (error.message.includes('Nicht angemeldet')) {
+          userMessage = "Du musst angemeldet sein. Bitte melde dich erneut an.";
+        } else {
+          userMessage = error.message;
+        }
+      }
+
       toast({
         title: "Fehler",
-        description: error instanceof Error ? error.message : "Konnte die Generierung nicht starten.",
+        description: userMessage,
         variant: "destructive",
       });
     } finally {

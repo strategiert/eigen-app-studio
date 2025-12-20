@@ -43,9 +43,6 @@ export function initSentry() {
       // Don't send errors in development unless explicitly enabled
       enabled: !isDevelopment || Boolean(dsn),
 
-      // Capture unhandled promise rejections
-      autoSessionTracking: true,
-
       // Ignore specific errors
       ignoreErrors: [
         // Browser extensions
@@ -146,17 +143,15 @@ export function addBreadcrumb(message: string, category: string, data?: Record<s
 }
 
 /**
- * Start a performance transaction
+ * Start a performance span (replaces deprecated startTransaction)
  */
-export function startTransaction(name: string, op: string) {
+export function startSpan(name: string, op: string, callback?: () => void) {
   if (!import.meta.env.VITE_SENTRY_DSN) {
+    callback?.();
     return null;
   }
 
-  return Sentry.startTransaction({
-    name,
-    op,
-  });
+  return Sentry.startSpan({ name, op }, callback ?? (() => {}));
 }
 
 // Export Sentry for advanced usage
