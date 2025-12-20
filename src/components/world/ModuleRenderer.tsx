@@ -9,7 +9,7 @@ import { FillInBlanksSection } from './sections/FillInBlanksSection';
 import { MatchingSection } from './sections/MatchingSection';
 import { ModuleImage } from './ModuleImage';
 import type { WorldDesign } from '@/lib/worldDesignTypes';
-import { getWorldPrimaryColor, getWorldAccentColor } from '@/lib/worldDesignTypes';
+import { getWorldPrimaryColor, getWorldAccentColor, getWorldTypographyStyles } from '@/lib/worldDesignTypes';
 
 interface QuizQuestion {
   question: string;
@@ -87,7 +87,8 @@ export function ModuleRenderer({
   // Use world-specific colors from AI-generated design
   const primaryColor = getWorldPrimaryColor(worldDesign);
   const accentColor = getWorldAccentColor(worldDesign);
-  
+  const typography = getWorldTypographyStyles(worldDesign);
+
   // Get module design from worldDesign if available
   const moduleDesigns = worldDesign?.moduleDesigns || [];
   const currentModuleDesign = moduleDesigns.find(md => 
@@ -102,10 +103,45 @@ export function ModuleRenderer({
     reflection: 'Reflektieren',
     challenge: 'Herausforderung'
   };
-  
+
   const moduleTypeLabel = moduleTypeLabels[module.module_type] || 'Wissen';
 
   const moduleType = module.module_type || 'knowledge';
+
+  // Module-specific visual styles
+  const moduleTypeStyles: Record<string, {
+    gradient: string;
+    icon: string;
+    borderStyle: string;
+  }> = {
+    discovery: {
+      gradient: 'linear-gradient(135deg, ${primaryColor}15, ${accentColor}15)',
+      icon: '🔍',
+      borderStyle: 'dashed'
+    },
+    knowledge: {
+      gradient: 'linear-gradient(135deg, ${primaryColor}10, transparent)',
+      icon: '📚',
+      borderStyle: 'solid'
+    },
+    practice: {
+      gradient: 'linear-gradient(135deg, ${accentColor}20, ${primaryColor}10)',
+      icon: '✏️',
+      borderStyle: 'solid'
+    },
+    reflection: {
+      gradient: 'linear-gradient(135deg, ${primaryColor}08, ${accentColor}08)',
+      icon: '💭',
+      borderStyle: 'double'
+    },
+    challenge: {
+      gradient: 'linear-gradient(135deg, ${accentColor}25, ${primaryColor}15)',
+      icon: '⚡',
+      borderStyle: 'solid'
+    }
+  };
+
+  const currentStyle = moduleTypeStyles[moduleType] || moduleTypeStyles.knowledge;
 
   // Get components from the module
   const components: Component[] = useMemo(() => {
@@ -235,23 +271,24 @@ export function ModuleRenderer({
       transition={{ duration: 0.4 }}
       className="space-y-4"
     >
-      {/* Module Header - uses world-specific colors */}
-      <div 
-        className="rounded-xl p-4 border"
-        style={{ 
+      {/* Module Header - uses world-specific colors and module-specific styles */}
+      <div
+        className="rounded-xl p-4"
+        style={{
           borderColor: primaryColor,
-          background: `linear-gradient(135deg, ${primaryColor}10, transparent)`
+          borderWidth: '2px',
+          borderStyle: currentStyle.borderStyle,
+          background: currentStyle.gradient
+            .replace('${primaryColor}', primaryColor)
+            .replace('${accentColor}', accentColor)
         }}
       >
         <div className="flex items-center gap-3">
-          <div 
-            className="p-2 rounded-lg"
+          <div
+            className="p-2 rounded-lg text-2xl"
             style={{ backgroundColor: `${primaryColor}20` }}
           >
-            <div 
-              className="w-5 h-5 rounded-full" 
-              style={{ backgroundColor: accentColor }}
-            />
+            {currentStyle.icon}
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
@@ -269,7 +306,14 @@ export function ModuleRenderer({
                 <Check className="h-4 w-4 text-green-500" />
               )}
             </div>
-            <h2 className="text-xl font-semibold text-foreground mt-1">
+            <h2
+              className="text-xl font-semibold text-foreground mt-1"
+              style={{
+                fontFamily: typography.headingFont,
+                fontWeight: typography.headingWeight,
+                letterSpacing: typography.headingLetterSpacing
+              }}
+            >
               {currentModuleDesign?.title || module.title}
             </h2>
             {currentModuleDesign?.visualFocus && (
@@ -307,6 +351,7 @@ export function ModuleRenderer({
       {/* Module Image */}
       <ModuleImage
         imageUrl={module.image_url}
+        imagePrompt={module.image_prompt}
         sectionId={module.id}
         worldId={worldId}
         subject={subject}
@@ -318,7 +363,13 @@ export function ModuleRenderer({
 
       {/* Module Content */}
       {module.content && !currentComponent?.componentData?.content && (
-        <div className="prose prose-sm max-w-none text-muted-foreground px-4">
+        <div
+          className="prose prose-sm max-w-none text-muted-foreground px-4"
+          style={{
+            fontFamily: typography.bodyFont,
+            lineHeight: typography.bodyLineHeight
+          }}
+        >
           <p>{module.content}</p>
         </div>
       )}

@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 
 interface ModuleImageProps {
   imageUrl?: string | null;
+  imagePrompt?: string | null;
   sectionId: string;
   worldId: string;
   subject: string;
@@ -20,6 +21,7 @@ interface ModuleImageProps {
 
 export function ModuleImage({
   imageUrl,
+  imagePrompt,
   sectionId,
   worldId,
   subject,
@@ -38,15 +40,15 @@ export function ModuleImage({
     setImageError(false);
 
     try {
-      // Create a prompt based on module content
-      const prompt = `${moduleTitle}. ${moduleContent || ''}`.slice(0, 500);
+      // Use the designed image prompt if available, otherwise create one from module content
+      const prompt = imagePrompt || `${moduleTitle}. ${moduleContent || ''}`.slice(0, 500);
 
       const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: { 
-          prompt, 
-          sectionId, 
-          worldId, 
-          subject 
+        body: {
+          prompt,
+          sectionId,
+          worldId,
+          subject
         }
       });
 

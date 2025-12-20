@@ -6,7 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { StarProgress } from './StarProgress';
 import { RestModeToggle } from './RestModeToggle';
 import type { WorldDesign } from '@/lib/worldDesignTypes';
-import { getWorldPrimaryColor } from '@/lib/worldDesignTypes';
+import { getWorldPrimaryColor, getWorldTypographyStyles } from '@/lib/worldDesignTypes';
 
 interface DynamicWorldHeaderProps {
   title: string;
@@ -30,10 +30,8 @@ export function DynamicWorldHeader({
 }: DynamicWorldHeaderProps) {
   const primaryColor = getWorldPrimaryColor(worldDesign);
   const progress = totalSections > 0 ? (completedSections / totalSections) * 100 : 0;
-  
-  // Get typography hints from world design
-  const headingStyle = worldDesign?.typography?.headingStyle || '';
-  
+  const typography = getWorldTypographyStyles(worldDesign);
+
   // Get mood-based styling
   const mood = worldDesign?.visualIdentity?.mood || 'playful';
   const era = worldDesign?.visualIdentity?.era || 'modern';
@@ -113,8 +111,13 @@ export function DynamicWorldHeader({
             </motion.div>
 
             <div className="flex-1 min-w-0">
-              <motion.h1 
+              <motion.h1
                 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground truncate"
+                style={{
+                  fontFamily: typography.headingFont,
+                  fontWeight: typography.headingWeight,
+                  letterSpacing: typography.headingLetterSpacing
+                }}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.15 }}

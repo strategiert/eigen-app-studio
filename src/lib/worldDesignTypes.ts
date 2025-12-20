@@ -117,10 +117,10 @@ export function getWorldPattern(design: WorldDesign | null): string {
   if (!design?.visualIdentity) {
     return 'none';
   }
-  
+
   const { patternStyle, primaryHue, saturation } = design.visualIdentity;
   const patternColor = `hsla(${primaryHue}, ${saturation}%, 50%, 0.03)`;
-  
+
   switch (patternStyle) {
     case 'geometric':
       return `repeating-linear-gradient(
@@ -154,4 +154,70 @@ export function getWorldPattern(design: WorldDesign | null): string {
     default:
       return 'none';
   }
+}
+
+/**
+ * Get typography styles based on world design era and mood
+ */
+export function getWorldTypographyStyles(design: WorldDesign | null): {
+  headingFont: string;
+  headingWeight: number;
+  headingLetterSpacing: string;
+  bodyFont: string;
+  bodyLineHeight: string;
+} {
+  if (!design?.visualIdentity) {
+    return {
+      headingFont: 'inherit',
+      headingWeight: 700,
+      headingLetterSpacing: 'normal',
+      bodyFont: 'inherit',
+      bodyLineHeight: '1.6'
+    };
+  }
+
+  const { era, mood } = design.visualIdentity;
+
+  // Era-based font families
+  const eraFonts: Record<typeof era, { heading: string; body: string }> = {
+    ancient: {
+      heading: 'Georgia, "Times New Roman", serif',
+      body: 'Georgia, serif'
+    },
+    medieval: {
+      heading: 'Georgia, "Times New Roman", serif',
+      body: 'Georgia, serif'
+    },
+    renaissance: {
+      heading: 'Georgia, Garamond, serif',
+      body: 'Georgia, serif'
+    },
+    modern: {
+      heading: 'system-ui, -apple-system, sans-serif',
+      body: 'system-ui, -apple-system, sans-serif'
+    },
+    futuristic: {
+      heading: 'ui-rounded, system-ui, sans-serif',
+      body: 'system-ui, sans-serif'
+    },
+    timeless: {
+      heading: 'inherit',
+      body: 'inherit'
+    }
+  };
+
+  // Mood-based weight and spacing
+  const headingWeight = mood === 'serious' ? 800 : mood === 'playful' ? 600 : 700;
+  const headingLetterSpacing = mood === 'serious' ? '-0.02em' : mood === 'playful' ? '0.01em' : 'normal';
+  const bodyLineHeight = mood === 'mystical' ? '1.8' : mood === 'playful' ? '1.6' : '1.65';
+
+  const fonts = eraFonts[era];
+
+  return {
+    headingFont: fonts.heading,
+    headingWeight,
+    headingLetterSpacing,
+    bodyFont: fonts.body,
+    bodyLineHeight
+  };
 }

@@ -17,7 +17,7 @@ import { CreatorBadge } from '@/components/world/CreatorBadge';
 import { useWorldProgress } from '@/hooks/useWorldProgress';
 import { useAuth } from '@/hooks/useAuth';
 import type { WorldDesign } from '@/lib/worldDesignTypes';
-import { getWorldGradient, getWorldPattern, getWorldPrimaryColor } from '@/lib/worldDesignTypes';
+import { getWorldGradient, getWorldPattern, getWorldPrimaryColor, getWorldTypographyStyles } from '@/lib/worldDesignTypes';
 import type { Json } from '@/integrations/supabase/types';
 
 interface LearningWorld {
@@ -194,6 +194,10 @@ export default function WorldView() {
     return getWorldPattern(worldDesign);
   }, [worldDesign]);
 
+  const typography = useMemo(() => {
+    return getWorldTypographyStyles(worldDesign);
+  }, [worldDesign]);
+
   const completedModules = useMemo(() => {
     return new Set(
       Object.entries(progress.sections)
@@ -340,6 +344,44 @@ export default function WorldView() {
         completedSections={progress.completedSections}
         totalSections={modules.length}
       />
+
+      {/* Narrative Frame - Story context for the world */}
+      {worldDesign?.worldConcept?.narrativeFrame && (
+        <div className="container mx-auto px-3 sm:px-4 pt-4 relative z-10">
+          <motion.div
+            className="bg-card/90 backdrop-blur-sm rounded-xl p-4 sm:p-6 border-2 border-border/50"
+            style={{ borderColor: `${getWorldPrimaryColor(worldDesign)}40` }}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <div className="flex items-start gap-3">
+              <div className="text-2xl sm:text-3xl">📖</div>
+              <div className="flex-1">
+                <h3
+                  className="text-sm sm:text-base font-semibold mb-2"
+                  style={{
+                    color: getWorldPrimaryColor(worldDesign),
+                    fontFamily: typography.headingFont,
+                    letterSpacing: typography.headingLetterSpacing
+                  }}
+                >
+                  Die Geschichte dieser Lernwelt
+                </h3>
+                <p
+                  className="text-sm sm:text-base text-muted-foreground leading-relaxed"
+                  style={{
+                    fontFamily: typography.bodyFont,
+                    lineHeight: typography.bodyLineHeight
+                  }}
+                >
+                  {worldDesign.worldConcept.narrativeFrame}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* Creator info and actions bar */}
       <div className="container mx-auto px-3 sm:px-4 py-4 relative z-10">
