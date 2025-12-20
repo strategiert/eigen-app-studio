@@ -49,7 +49,7 @@
     --success: 150 70% 45%;
     --success-foreground: 0 0% 100%;
 
-    /* Subject colors */
+    /* Subject colors - unique palettes for each subject */
     --subject-math: 220 90% 56%;
     --subject-german: 350 80% 55%;
     --subject-english: 200 90% 50%;
@@ -62,6 +62,10 @@
     --subject-music: 280 70% 50%;
     --subject-sport: 15 90% 55%;
     --subject-informatics: 200 80% 50%;
+    --subject-science: 170 70% 45%;
+    --subject-nature: 100 60% 40%;
+    --subject-religion: 35 60% 50%;
+    --subject-computer: 210 80% 55%;
 
     /* Gradients */
     --gradient-night: linear-gradient(180deg, hsl(240 50% 8%) 0%, hsl(250 60% 20%) 100%);
