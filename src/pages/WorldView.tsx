@@ -17,7 +17,7 @@ import { CreatorBadge } from '@/components/world/CreatorBadge';
 import { useWorldProgress } from '@/hooks/useWorldProgress';
 import { useAuth } from '@/hooks/useAuth';
 import { getSubjectTheme, type SubjectType, type MoonPhase } from '@/lib/subjectTheme';
-import { type WorldVisualTheme, getWorldGradient, getWorldPattern, defaultWorldTheme } from '@/lib/worldTheme';
+import { type WorldVisualTheme, getWorldGradient, getWorldPattern, defaultWorldTheme, getSubjectThemeDefaults } from '@/lib/worldTheme';
 import type { Json } from '@/integrations/supabase/types';
 
 interface LearningWorld {
@@ -182,8 +182,18 @@ export default function WorldView() {
   }, [world?.subject]);
 
   const visualTheme = useMemo(() => {
-    return world?.visual_theme || defaultWorldTheme;
-  }, [world?.visual_theme]);
+    // Check if visual_theme exists and has required properties
+    const theme = world?.visual_theme;
+    if (theme && typeof theme === 'object' && 'primaryHue' in theme) {
+      return theme;
+    }
+    // Fall back to subject-based defaults if no valid theme
+    if (world?.subject) {
+      const subjectDefaults = getSubjectThemeDefaults(world.subject);
+      return { ...defaultWorldTheme, ...subjectDefaults };
+    }
+    return defaultWorldTheme;
+  }, [world?.visual_theme, world?.subject]);
 
   const worldBackground = useMemo(() => {
     if (!visualTheme) return undefined;
