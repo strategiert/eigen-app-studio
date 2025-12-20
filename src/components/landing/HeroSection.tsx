@@ -82,7 +82,7 @@ export const HeroSection = () => {
               asChild
               size="lg"
               variant="outline"
-              className="border-white/20 text-white hover:bg-white/10 text-lg px-8"
+              className="bg-white border-white text-night-sky hover:bg-white hover:text-night-sky text-lg px-8"
             >
               <Link to="/explore">
                 <BookOpen className="w-5 h-5 mr-2" />
