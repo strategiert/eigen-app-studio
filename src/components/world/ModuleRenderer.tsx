@@ -7,7 +7,7 @@ import { TextSection } from './sections/TextSection';
 import { QuizSection } from './sections/QuizSection';
 import { FillInBlanksSection } from './sections/FillInBlanksSection';
 import { MatchingSection } from './sections/MatchingSection';
-
+import { ModuleImage } from './ModuleImage';
 // Module type definitions
 const MODULE_TYPES = {
   discovery: {
@@ -83,26 +83,34 @@ interface Module {
   module_type: string;
   component_type: string;
   component_data: ComponentData;
+  image_url?: string | null;
+  image_prompt?: string | null;
 }
 
 interface ModuleRendererProps {
   module: Module;
   subjectColor: string;
+  worldId: string;
+  subject: string;
   onComplete: (moduleId: string, score: number, maxScore: number) => void;
   onContinue: () => void;
   isCompleted: boolean;
   previousScore?: number;
   isLastModule?: boolean;
+  isCreator?: boolean;
 }
 
 export function ModuleRenderer({
   module,
   subjectColor,
+  worldId,
+  subject,
   onComplete,
   onContinue,
   isCompleted,
   previousScore,
-  isLastModule = false
+  isLastModule = false,
+  isCreator = false
 }: ModuleRendererProps) {
   const [currentComponentIndex, setCurrentComponentIndex] = useState(0);
   const [componentScores, setComponentScores] = useState<Map<number, { score: number; maxScore: number }>>(new Map());
@@ -302,6 +310,18 @@ export function ModuleRenderer({
           </div>
         )}
       </div>
+
+      {/* Module Image */}
+      <ModuleImage
+        imageUrl={module.image_url}
+        sectionId={module.id}
+        worldId={worldId}
+        subject={subject}
+        moduleTitle={module.title}
+        moduleContent={module.content}
+        subjectColor={subjectColor}
+        canGenerate={isCreator}
+      />
 
       {/* Module Content */}
       {module.content && !currentComponent?.componentData?.content && (
