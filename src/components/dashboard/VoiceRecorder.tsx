@@ -157,7 +157,7 @@ export const VoiceRecorder = ({ onTranscript, disabled }: VoiceRecorderProps) =>
             exit={{ opacity: 0, height: 0 }}
             className="bg-background/50 rounded-xl p-4 min-h-[100px] max-h-[200px] overflow-y-auto"
           >
-            <p className="text-foreground">
+            <p className="text-foreground font-sans" style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
               {scribe.committedTranscripts.map(t => t.text).join(" ")}
               <span className="text-muted-foreground">{scribe.partialTranscript}</span>
               {isRecording && (
