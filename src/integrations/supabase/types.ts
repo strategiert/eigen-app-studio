@@ -103,6 +103,8 @@ export type Database = {
           fork_count: number | null
           forked_from_id: string | null
           generated_code: string | null
+          generation_error: string | null
+          generation_status: string | null
           id: string
           is_public: boolean
           metadata: Json | null
@@ -126,6 +128,8 @@ export type Database = {
           fork_count?: number | null
           forked_from_id?: string | null
           generated_code?: string | null
+          generation_error?: string | null
+          generation_status?: string | null
           id?: string
           is_public?: boolean
           metadata?: Json | null
@@ -149,6 +153,8 @@ export type Database = {
           fork_count?: number | null
           forked_from_id?: string | null
           generated_code?: string | null
+          generation_error?: string | null
+          generation_status?: string | null
           id?: string
           is_public?: boolean
           metadata?: Json | null
