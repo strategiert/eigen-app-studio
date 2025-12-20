@@ -169,11 +169,18 @@ KRITISCH WICHTIG:
 - Verwende deutsche Fachbegriffe für das Unterrichtsfach
 - Bei Fremdsprachen (z.B. Englisch): Erkläre die Begriffe auf Deutsch, zeige dann die fremdsprachigen Beispiele
 
+WICHTIG - Erlaubte moduleType Werte (NUR DIESE VERWENDEN):
+- "discovery": Einführung und Entdeckung neuer Konzepte
+- "knowledge": Wissensvermittlung und Erklärungen
+- "practice": Übungen und Anwendung
+- "reflection": Reflexion und Zusammenfassung
+- "challenge": Herausforderungen und Quiz
+
 Jeder Abschnitt sollte einen dieser Komponententypen haben:
 - "text": Erklärender Inhalt mit Markdown
-- "quiz": Multiple-Choice-Fragen
-- "fill-blanks": Lückentext-Übungen
-- "matching": Zuordnungsübung
+- "quiz": Multiple-Choice-Fragen (verwende moduleType: "challenge")
+- "fill-blanks": Lückentext-Übungen (verwende moduleType: "practice")
+- "matching": Zuordnungsübung (verwende moduleType: "practice")
 
 Gib JSON zurück:
 {
@@ -189,7 +196,7 @@ Gib JSON zurück:
     {
       "title": "Deutscher Abschnittstitel",
       "content": "Hauptinhalt auf Deutsch (Markdown für Text-Abschnitte)",
-      "moduleType": "knowledge/practice",
+      "moduleType": "discovery|knowledge|practice|reflection|challenge",
       "componentType": "text/quiz/fill-blanks/matching",
       "componentData": {},
       "imagePrompt": "Detaillierte Beschreibung für Illustration"
@@ -225,6 +232,24 @@ ALLES AUF DEUTSCH!`;
     }
 
     // Create sections - ENFORCE design from worldDesign.moduleDesigns
+    // Valid module types according to DB constraint
+    const validModuleTypes = ['discovery', 'knowledge', 'practice', 'reflection', 'challenge'];
+    
+    // Map common AI-generated types to valid types
+    const moduleTypeMap: Record<string, string> = {
+      'quiz': 'challenge',
+      'test': 'challenge',
+      'exercise': 'practice',
+      'übung': 'practice',
+      'intro': 'discovery',
+      'introduction': 'discovery',
+      'einführung': 'discovery',
+      'summary': 'reflection',
+      'zusammenfassung': 'reflection',
+      'learn': 'knowledge',
+      'lernen': 'knowledge',
+    };
+    
     if (generatedContent.sections && generatedContent.sections.length > 0) {
       const sections = generatedContent.sections.map((section: any, index: number) => {
         // Versuche passendes Design aus worldDesign.moduleDesigns zu finden
@@ -234,11 +259,20 @@ ALLES AUF DEUTSCH!`;
             section.title?.toLowerCase().includes(d.title?.toLowerCase())
           );
 
+        // Get module type with fallback and validation
+        let rawModuleType = matchingDesign?.moduleType || section.moduleType || "knowledge";
+        rawModuleType = rawModuleType.toLowerCase();
+        
+        // Map to valid type or use as-is if valid
+        let finalModuleType = validModuleTypes.includes(rawModuleType) 
+          ? rawModuleType 
+          : (moduleTypeMap[rawModuleType] || "knowledge");
+
         return {
           world_id: worldId,
           title: matchingDesign?.title || section.title,
           content: section.content,
-          module_type: matchingDesign?.moduleType || section.moduleType || "knowledge",
+          module_type: finalModuleType,
           component_type: section.componentType || "text",
           component_data: section.componentData || {},
           image_prompt: matchingDesign?.imagePrompt || section.imagePrompt || null,
