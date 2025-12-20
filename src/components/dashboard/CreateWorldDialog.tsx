@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Loader2, BookOpen, FileText, Wand2, Upload, File, X } from "lucide-react";
+import { Sparkles, BookOpen, FileText, Wand2, Upload, File, X, Mic, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -23,8 +23,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { VoiceRecorder } from "./VoiceRecorder";
+import { GenerationProgress } from "./GenerationProgress";
 
 type SubjectType = Database["public"]["Enums"]["subject_type"];
+type GenerationStage = "uploading" | "extracting" | "analyzing" | "generating" | "finalizing" | "complete";
 
 interface CreateWorldDialogProps {
   open: boolean;
@@ -48,15 +51,29 @@ const subjects: { value: SubjectType; label: string; emoji: string }[] = [
   { value: "allgemein", label: "Allgemein", emoji: "📚" },
 ];
 
+// Accepted file types
+const ACCEPTED_TYPES = ".pdf,.docx,.doc,.jpg,.jpeg,.png,.webp,.gif";
+const ACCEPTED_MIME_TYPES = [
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/msword",
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+];
+
 export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: CreateWorldDialogProps) => {
   const [step, setStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isUploadingPdf, setIsUploadingPdf] = useState(false);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [generationStage, setGenerationStage] = useState<GenerationStage>("uploading");
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState<SubjectType>("allgemein");
   const [sourceContent, setSourceContent] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [contentMode, setContentMode] = useState<"text" | "pdf">("text");
+  const [contentMode, setContentMode] = useState<"text" | "file" | "voice">("text");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -68,7 +85,8 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
     setUploadedFile(null);
     setContentMode("text");
     setIsGenerating(false);
-    setIsUploadingPdf(false);
+    setIsUploadingFile(false);
+    setGenerationStage("uploading");
   };
 
   const handleClose = () => {
@@ -80,10 +98,11 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.type !== "application/pdf") {
+    // Validate MIME type
+    if (!ACCEPTED_MIME_TYPES.includes(file.type)) {
       toast({
         title: "Ungültiger Dateityp",
-        description: "Bitte lade eine PDF-Datei hoch.",
+        description: "Bitte lade ein PDF, Word-Dokument oder Bild hoch.",
         variant: "destructive",
       });
       return;
@@ -99,12 +118,15 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
     }
 
     setUploadedFile(file);
-    setIsUploadingPdf(true);
+    setIsUploadingFile(true);
+    setGenerationStage("uploading");
 
     try {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Nicht angemeldet");
+
+      setGenerationStage("extracting");
 
       // Upload to Supabase Storage
       const filePath = `${user.id}/${Date.now()}-${file.name}`;
@@ -114,9 +136,9 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
 
       if (uploadError) throw uploadError;
 
-      // Parse PDF using edge function
-      const { data: parseData, error: parseError } = await supabase.functions.invoke("parse-pdf", {
-        body: { filePath },
+      // Parse document using edge function
+      const { data: parseData, error: parseError } = await supabase.functions.invoke("parse-document", {
+        body: { filePath, mimeType: file.type },
       });
 
       if (parseError) throw parseError;
@@ -124,22 +146,22 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
       if (parseData?.text) {
         setSourceContent(parseData.text);
         toast({
-          title: "PDF erfolgreich verarbeitet",
-          description: `${parseData.pageCount || 0} Seiten wurden extrahiert.`,
+          title: "Datei erfolgreich verarbeitet",
+          description: `${parseData.characterCount?.toLocaleString() || 0} Zeichen wurden extrahiert.`,
         });
       } else {
         throw new Error("Kein Text konnte extrahiert werden");
       }
     } catch (error) {
-      console.error("Error processing PDF:", error);
+      console.error("Error processing file:", error);
       toast({
         title: "Fehler beim Verarbeiten",
-        description: error instanceof Error ? error.message : "PDF konnte nicht verarbeitet werden.",
+        description: error instanceof Error ? error.message : "Datei konnte nicht verarbeitet werden.",
         variant: "destructive",
       });
       setUploadedFile(null);
     } finally {
-      setIsUploadingPdf(false);
+      setIsUploadingFile(false);
     }
   };
 
@@ -149,6 +171,21 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  };
+
+  const handleVoiceTranscript = (transcript: string) => {
+    setSourceContent(prev => prev ? `${prev}\n\n${transcript}` : transcript);
+    toast({
+      title: "Sprache erkannt",
+      description: `${transcript.length.toLocaleString()} Zeichen wurden transkribiert.`,
+    });
+  };
+
+  const getFileIcon = (mimeType?: string) => {
+    if (!mimeType) return <File className="w-6 h-6 text-moon" />;
+    if (mimeType.startsWith("image/")) return <File className="w-6 h-6 text-green-500" />;
+    if (mimeType.includes("word")) return <File className="w-6 h-6 text-blue-500" />;
+    return <File className="w-6 h-6 text-moon" />;
   };
 
   const handleGenerate = async () => {
@@ -162,8 +199,14 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
     }
 
     setIsGenerating(true);
+    setStep(3); // Show generation progress
+    setGenerationStage("analyzing");
 
     try {
+      // Simulate stage progression
+      setTimeout(() => setGenerationStage("generating"), 2000);
+      setTimeout(() => setGenerationStage("finalizing"), 5000);
+
       // Call the AI generation function
       const { data: aiData, error: aiError } = await supabase.functions.invoke("generate-world", {
         body: { title, subject, sourceContent },
@@ -223,13 +266,16 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
         }
       }
 
-      toast({
-        title: "Lernwelt erstellt! ✨",
-        description: `"${title}" wurde erfolgreich generiert.`,
-      });
+      setGenerationStage("complete");
 
-      handleClose();
-      onWorldCreated();
+      setTimeout(() => {
+        toast({
+          title: "Lernwelt erstellt! ✨",
+          description: `"${title}" wurde erfolgreich generiert.`,
+        });
+        handleClose();
+        onWorldCreated();
+      }, 1500);
     } catch (error) {
       console.error("Error creating world:", error);
       toast({
@@ -237,6 +283,7 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
         description: error instanceof Error ? error.message : "Konnte die Lernwelt nicht erstellen.",
         variant: "destructive",
       });
+      setStep(2); // Go back to content step
     } finally {
       setIsGenerating(false);
     }
@@ -255,28 +302,31 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center gap-2 mb-6">
-          {[1, 2].map((s) => (
-            <div key={s} className="flex items-center">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
-                  step >= s
-                    ? "bg-moon text-night-sky"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
-                {s}
-              </div>
-              {s < 2 && (
+        {/* Step indicators */}
+        {step < 3 && (
+          <div className="flex items-center gap-2 mb-6">
+            {[1, 2].map((s) => (
+              <div key={s} className="flex items-center">
                 <div
-                  className={`w-16 h-0.5 mx-2 transition-all ${
-                    step > s ? "bg-moon" : "bg-muted"
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
+                    step >= s
+                      ? "bg-moon text-night-sky"
+                      : "bg-muted text-muted-foreground"
                   }`}
-                />
-              )}
-            </div>
-          ))}
-        </div>
+                >
+                  {s}
+                </div>
+                {s < 2 && (
+                  <div
+                    className={`w-16 h-0.5 mx-2 transition-all ${
+                      step > s ? "bg-moon" : "bg-muted"
+                    }`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         <AnimatePresence mode="wait">
           {step === 1 && (
@@ -347,14 +397,24 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
                   Lerninhalt
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Füge Text ein oder lade eine PDF-Datei hoch.
+                  Füge Text ein, lade eine Datei hoch oder nutze Spracheingabe.
                 </p>
               </div>
 
-              <Tabs value={contentMode} onValueChange={(v) => setContentMode(v as "text" | "pdf")} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="text">Text eingeben</TabsTrigger>
-                  <TabsTrigger value="pdf">PDF hochladen</TabsTrigger>
+              <Tabs value={contentMode} onValueChange={(v) => setContentMode(v as "text" | "file" | "voice")} className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="text" className="gap-1">
+                    <FileText className="w-3 h-3" />
+                    Text
+                  </TabsTrigger>
+                  <TabsTrigger value="file" className="gap-1">
+                    <Upload className="w-3 h-3" />
+                    Datei
+                  </TabsTrigger>
+                  <TabsTrigger value="voice" className="gap-1">
+                    <Mic className="w-3 h-3" />
+                    Sprache
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="text" className="mt-4">
@@ -366,11 +426,11 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
                   />
                 </TabsContent>
 
-                <TabsContent value="pdf" className="mt-4">
+                <TabsContent value="file" className="mt-4">
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".pdf,application/pdf"
+                    accept={ACCEPTED_TYPES}
                     onChange={handleFileSelect}
                     className="hidden"
                   />
@@ -381,22 +441,24 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
                       className="border-2 border-dashed border-border/50 rounded-xl p-8 text-center cursor-pointer hover:border-moon/50 hover:bg-moon/5 transition-all"
                     >
                       <Upload className="w-10 h-10 mx-auto mb-4 text-muted-foreground" />
-                      <p className="text-foreground font-medium mb-1">PDF-Datei auswählen</p>
-                      <p className="text-sm text-muted-foreground">Maximal 50 MB</p>
+                      <p className="text-foreground font-medium mb-1">Datei auswählen</p>
+                      <p className="text-sm text-muted-foreground">
+                        PDF, Word, oder Bilder (max. 50 MB)
+                      </p>
                     </div>
                   ) : (
                     <div className="border border-border/50 rounded-xl p-4 bg-background/50">
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-moon/10 rounded-lg">
-                          <File className="w-6 h-6 text-moon" />
+                          {getFileIcon(uploadedFile.type)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-foreground truncate">{uploadedFile.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            {isUploadingPdf ? "Wird verarbeitet..." : "Erfolgreich verarbeitet"}
+                            {isUploadingFile ? "Wird verarbeitet..." : "Erfolgreich verarbeitet"}
                           </p>
                         </div>
-                        {!isUploadingPdf && (
+                        {!isUploadingFile && (
                           <Button
                             variant="ghost"
                             size="icon"
@@ -406,18 +468,39 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
                             <X className="w-4 h-4" />
                           </Button>
                         )}
-                        {isUploadingPdf && (
+                        {isUploadingFile && (
                           <Loader2 className="w-5 h-5 animate-spin text-moon" />
                         )}
                       </div>
                     </div>
                   )}
 
-                  {sourceContent && contentMode === "pdf" && (
+                  {sourceContent && contentMode === "file" && (
                     <div className="mt-4 p-3 bg-muted/50 rounded-lg">
                       <p className="text-sm text-muted-foreground">
                         <span className="font-medium text-foreground">{sourceContent.length.toLocaleString()}</span> Zeichen extrahiert
                       </p>
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="voice" className="mt-4">
+                  <VoiceRecorder 
+                    onTranscript={handleVoiceTranscript}
+                    disabled={isUploadingFile}
+                  />
+                  
+                  {sourceContent && contentMode === "voice" && (
+                    <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                      <p className="text-sm text-muted-foreground mb-2">
+                        <span className="font-medium text-foreground">{sourceContent.length.toLocaleString()}</span> Zeichen transkribiert
+                      </p>
+                      <Textarea
+                        value={sourceContent}
+                        onChange={(e) => setSourceContent(e.target.value)}
+                        className="min-h-[100px] bg-background/50"
+                        placeholder="Transkribierter Text erscheint hier..."
+                      />
                     </div>
                   )}
                 </TabsContent>
@@ -433,7 +516,7 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
                 </Button>
                 <Button
                   onClick={handleGenerate}
-                  disabled={isGenerating || isUploadingPdf || !sourceContent.trim()}
+                  disabled={isGenerating || isUploadingFile || !sourceContent.trim()}
                   className="flex-1 bg-gradient-to-r from-moon to-aurora text-night-sky hover:opacity-90"
                 >
                   {isGenerating ? (
@@ -449,6 +532,18 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
                   )}
                 </Button>
               </div>
+            </motion.div>
+          )}
+
+          {step === 3 && (
+            <motion.div
+              key="step3"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="py-8"
+            >
+              <GenerationProgress stage={generationStage} />
             </motion.div>
           )}
         </AnimatePresence>
