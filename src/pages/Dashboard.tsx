@@ -25,7 +25,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { Database } from "@/integrations/supabase/types";
 
-type LearningWorld = Database["public"]["Tables"]["learning_worlds"]["Row"];
+type LearningWorld = Database["public"]["Tables"]["learning_worlds"]["Row"] & {
+  generation_status?: string | null;
+  generation_error?: string | null;
+};
 
 const Dashboard = () => {
   const { user, role, loading: authLoading } = useAuth();
@@ -56,6 +59,66 @@ const Dashboard = () => {
     }
   }, [user]);
 
+  // Realtime subscription for generation status updates
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('world-generation-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'learning_worlds',
+          filter: `creator_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('Realtime update:', payload);
+          const updatedWorld = payload.new as LearningWorld;
+          
+          setWorlds(prevWorlds => 
+            prevWorlds.map(w => 
+              w.id === updatedWorld.id ? { ...w, ...updatedWorld } : w
+            )
+          );
+
+          // Show toast when generation completes
+          if (updatedWorld.generation_status === 'complete') {
+            toast({
+              title: "Lernwelt fertig! ✨",
+              description: `"${updatedWorld.title}" wurde erfolgreich erstellt.`,
+            });
+          } else if (updatedWorld.generation_status === 'error') {
+            toast({
+              title: "Generierung fehlgeschlagen",
+              description: updatedWorld.generation_error || "Ein Fehler ist aufgetreten.",
+              variant: "destructive",
+            });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'learning_worlds',
+          filter: `creator_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('Realtime insert:', payload);
+          const newWorld = payload.new as LearningWorld;
+          setWorlds(prevWorlds => [newWorld, ...prevWorlds]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, toast]);
+
   const fetchProfile = async () => {
     if (!user) return;
     const { data } = await supabase
@@ -78,7 +141,7 @@ const Dashboard = () => {
         .order("updated_at", { ascending: false });
 
       if (error) throw error;
-      setWorlds(data || []);
+      setWorlds((data || []) as LearningWorld[]);
     } catch (error) {
       console.error("Error fetching worlds:", error);
       toast({
