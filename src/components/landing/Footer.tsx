@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { MoonLogo } from "@/components/icons/MoonLogo";
+import { resetCookieConsent } from "@/components/cookie/CookieBanner";
 
 export const Footer = () => {
   return (
@@ -30,6 +31,12 @@ export const Footer = () => {
             <Link to="/terms" className="hover:text-foreground transition-colors">
               AGB
             </Link>
+            <button 
+              onClick={resetCookieConsent}
+              className="hover:text-foreground transition-colors"
+            >
+              Cookie-Einstellungen
+            </button>
           </nav>
           
           <p className="text-sm text-muted-foreground">
