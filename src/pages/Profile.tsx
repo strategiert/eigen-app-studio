@@ -199,6 +199,7 @@ const Profile = () => {
             profile={profile!}
             stats={stats}
             isOwnProfile={isOwnProfile}
+            currentUserId={user?.id}
             onEdit={() => setIsEditing(true)}
           />
 

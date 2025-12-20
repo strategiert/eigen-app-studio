@@ -9,16 +9,16 @@ import { useToast } from "@/hooks/use-toast";
 interface RatingWidgetProps {
   worldId: string;
   userId: string;
-  existingRating?: { rating: number; comment: string | null };
+  existingRating?: number;
   onRatingSubmit?: () => void;
 }
 
 export const RatingWidget = ({ worldId, userId, existingRating, onRatingSubmit }: RatingWidgetProps) => {
-  const [rating, setRating] = useState(existingRating?.rating || 0);
+  const [rating, setRating] = useState(existingRating || 0);
   const [hoveredRating, setHoveredRating] = useState(0);
-  const [comment, setComment] = useState(existingRating?.comment || "");
+  const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showComment, setShowComment] = useState(!!existingRating?.comment);
+  const [showComment, setShowComment] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async () => {

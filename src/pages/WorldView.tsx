@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,6 +10,10 @@ import { ModuleRenderer } from '@/components/world/ModuleRenderer';
 import { CompletionCelebration, StarCollectAnimation } from '@/components/world/CompletionCelebration';
 import { FloatingStars } from '@/components/world/StarProgress';
 import { PageTransition } from '@/components/world/PageTransition';
+import { RatingWidget } from '@/components/ratings/RatingWidget';
+import { RatingDisplay } from '@/components/ratings/RatingDisplay';
+import { ForkWorldButton } from '@/components/world/ForkWorldButton';
+import { CreatorBadge } from '@/components/world/CreatorBadge';
 import { useWorldProgress } from '@/hooks/useWorldProgress';
 import { useAuth } from '@/hooks/useAuth';
 import { getSubjectTheme, type SubjectType, type MoonPhase } from '@/lib/subjectTheme';
@@ -53,6 +57,9 @@ export default function WorldView() {
   const [celebrationType, setCelebrationType] = useState<'section' | 'world'>('section');
   const [showStars, setShowStars] = useState(false);
   const [lastEarnedStars, setLastEarnedStars] = useState(0);
+  const [creatorProfile, setCreatorProfile] = useState<{ display_name: string | null; avatar_url: string | null } | null>(null);
+  const [worldRating, setWorldRating] = useState<{ average: number; count: number }>({ average: 0, count: 0 });
+  const [existingUserRating, setExistingUserRating] = useState<number | undefined>(undefined);
 
   const {
     progress,
@@ -92,6 +99,24 @@ export default function WorldView() {
           visual_theme: worldData.visual_theme as unknown as WorldVisualTheme | null
         } as LearningWorld);
 
+        // Fetch creator profile
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('display_name, avatar_url')
+          .eq('id', worldData.creator_id)
+          .maybeSingle();
+        
+        setCreatorProfile(profileData);
+
+        // Fetch world rating
+        const { data: ratingData } = await supabase.rpc('get_world_rating', { world_uuid: worldId });
+        if (ratingData && ratingData[0]) {
+          setWorldRating({
+            average: ratingData[0].average_rating || 0,
+            count: Number(ratingData[0].total_ratings) || 0
+          });
+        }
+
         // Fetch modules (formerly sections)
         const { data: modulesData, error: modulesError } = await supabase
           .from('learning_sections')
@@ -119,6 +144,38 @@ export default function WorldView() {
 
     fetchWorld();
   }, [worldId]);
+
+  // Fetch existing user rating
+  useEffect(() => {
+    async function fetchUserRating() {
+      if (!worldId || !user) return;
+      
+      const { data } = await supabase
+        .from('world_ratings')
+        .select('rating')
+        .eq('world_id', worldId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (data) {
+        setExistingUserRating(data.rating);
+      }
+    }
+    
+    fetchUserRating();
+  }, [worldId, user]);
+
+  const handleRatingSubmit = () => {
+    // Refresh rating after submission
+    supabase.rpc('get_world_rating', { world_uuid: worldId! }).then(({ data }) => {
+      if (data && data[0]) {
+        setWorldRating({
+          average: data[0].average_rating || 0,
+          count: Number(data[0].total_ratings) || 0
+        });
+      }
+    });
+  };
 
   const subjectTheme = useMemo(() => {
     return world ? getSubjectTheme(world.subject) : null;
@@ -287,6 +344,34 @@ export default function WorldView() {
         totalSections={modules.length}
       />
 
+      {/* Creator info and actions bar */}
+      <div className="container mx-auto px-3 sm:px-4 py-4 relative z-10">
+        <motion.div 
+          className="flex flex-wrap items-center justify-between gap-4 bg-card/80 backdrop-blur-sm rounded-xl p-4 border border-border/50"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="flex items-center gap-4">
+            <Link to={`/profile/${world.creator_id}`}>
+              <CreatorBadge
+                creatorId={world.creator_id}
+                displayName={creatorProfile?.display_name}
+                avatarUrl={creatorProfile?.avatar_url}
+              />
+            </Link>
+            <RatingDisplay average={worldRating.average} count={worldRating.count} />
+          </div>
+          
+          {world.is_public && !isCreator && user && (
+            <ForkWorldButton
+              worldId={world.id}
+              worldTitle={world.title}
+              userId={user.id}
+            />
+          )}
+        </motion.div>
+      </div>
+
       {/* Main content - Mobile optimized */}
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 relative z-10">
         {/* Module navigation */}
@@ -370,6 +455,23 @@ export default function WorldView() {
             <ChevronRight className="h-4 w-4" />
           </Button>
         </motion.div>
+
+        {/* Rating Widget - Show after navigation for non-creators */}
+        {user && !isCreator && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mt-8"
+          >
+            <RatingWidget
+              worldId={worldId!}
+              userId={user.id}
+              existingRating={existingUserRating}
+              onRatingSubmit={handleRatingSubmit}
+            />
+          </motion.div>
+        )}
       </main>
 
       {/* Celebration animations */}
