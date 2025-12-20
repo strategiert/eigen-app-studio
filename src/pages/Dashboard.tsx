@@ -31,7 +31,7 @@ type LearningWorld = Database["public"]["Tables"]["learning_worlds"]["Row"] & {
 };
 
 const Dashboard = () => {
-  const { user, role, loading: authLoading } = useAuth();
+  const { user, role, loading: authLoading, refetchRole } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const subscription = useSubscription();
@@ -254,7 +254,7 @@ const Dashboard = () => {
             <Loader2 className="w-8 h-8 animate-spin text-moon" />
           </div>
         ) : role !== "creator" && role !== "admin" ? (
-          <UpgradeToCreatorCard onUpgraded={() => window.location.reload()} />
+          <UpgradeToCreatorCard onUpgraded={refetchRole} />
         ) : filteredWorlds.length === 0 ? (
           worlds.length === 0 ? (
             <EmptyState onCreateClick={() => setCreateDialogOpen(true)} />

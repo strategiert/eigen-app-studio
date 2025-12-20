@@ -67,5 +67,11 @@ export const useAuth = () => {
     await supabase.auth.signOut();
   };
 
-  return { user, session, role, loading, signOut };
+  const refetchRole = async () => {
+    if (user) {
+      await fetchUserRole(user.id);
+    }
+  };
+
+  return { user, session, role, loading, signOut, refetchRole };
 };
