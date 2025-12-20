@@ -206,7 +206,8 @@ Create 4-6 sections mixing explanation and interactive exercises.`;
       .update({
         poetic_name: generatedContent.poeticName || worldDesign?.worldConcept?.name || null,
         description: generatedContent.description || worldDesign?.worldConcept?.tagline || null,
-        visual_theme: generatedContent.visualTheme || {},
+        // CRITICAL: Use AI-generated design from worldDesign, not generatedContent
+        visual_theme: worldDesign?.visualIdentity || {},
         world_design: worldDesign || {},
         generated_code: JSON.stringify({ contentAnalysis, worldDesign, generatedContent }),
         status: 'draft',
@@ -217,18 +218,30 @@ Create 4-6 sections mixing explanation and interactive exercises.`;
       throw new Error(`Failed to update world: ${worldUpdateError.message}`);
     }
 
-    // Create sections
+    // Create sections - ENFORCE design from worldDesign.moduleDesigns
     if (generatedContent.sections && generatedContent.sections.length > 0) {
-      const sections = generatedContent.sections.map((section: any, index: number) => ({
-        world_id: worldId,
-        title: section.title,
-        content: section.content,
-        module_type: section.moduleType || "knowledge",
-        component_type: section.componentType || "text",
-        component_data: section.componentData || {},
-        image_prompt: section.imagePrompt || null,
-        order_index: index,
-      }));
+      const sections = generatedContent.sections.map((section: any, index: number) => {
+        // Find matching design from worldDesign (by index or title match)
+        const matchingDesign = worldDesign?.moduleDesigns?.[index] ||
+          worldDesign?.moduleDesigns?.find((d: any) =>
+            d.title.toLowerCase().includes(section.title.toLowerCase()) ||
+            section.title.toLowerCase().includes(d.title.toLowerCase())
+          );
+
+        return {
+          world_id: worldId,
+          // FORCE title from worldDesign if available
+          title: matchingDesign?.title || section.title,
+          content: section.content,
+          // FORCE moduleType from worldDesign
+          module_type: matchingDesign?.moduleType || section.moduleType || "knowledge",
+          component_type: section.componentType || "text",
+          component_data: section.componentData || {},
+          // FORCE imagePrompt from worldDesign
+          image_prompt: matchingDesign?.imagePrompt || section.imagePrompt || null,
+          order_index: index,
+        };
+      });
 
       const { data: createdSections, error: sectionsError } = await supabase
         .from('learning_sections')
