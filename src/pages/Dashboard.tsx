@@ -25,7 +25,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { Database } from "@/integrations/supabase/types";
 
-type LearningWorld = Database["public"]["Tables"]["learning_worlds"]["Row"];
+type LearningWorld = Database["public"]["Tables"]["learning_worlds"]["Row"] & {
+  generation_status?: string | null;
+  generation_error?: string | null;
+};
 
 const Dashboard = () => {
   const { user, role, loading: authLoading, refetchRole } = useAuth();
@@ -56,6 +59,83 @@ const Dashboard = () => {
     }
   }, [user]);
 
+  // Realtime subscription for generation status updates
+  useEffect(() => {
+    if (!user) return;
+
+    console.log('Setting up realtime subscription for user:', user.id);
+
+    const channel = supabase
+      .channel('world-generation-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'learning_worlds',
+          filter: `creator_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('Realtime event:', payload.eventType, payload);
+          
+          if (payload.eventType === 'INSERT') {
+            const newWorld = payload.new as LearningWorld;
+            setWorlds(prevWorlds => {
+              // Avoid duplicates
+              if (prevWorlds.some(w => w.id === newWorld.id)) {
+                return prevWorlds;
+              }
+              return [newWorld, ...prevWorlds];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedWorld = payload.new as LearningWorld;
+            
+            setWorlds(prevWorlds => {
+              // Check if world exists in list
+              const exists = prevWorlds.some(w => w.id === updatedWorld.id);
+              if (exists) {
+                // Update existing world
+                return prevWorlds.map(w => 
+                  w.id === updatedWorld.id ? { ...w, ...updatedWorld } : w
+                );
+              } else {
+                // World not in list yet (INSERT was missed) - add it
+                console.log('World not in list, adding:', updatedWorld.id);
+                return [updatedWorld, ...prevWorlds];
+              }
+            });
+
+            // Show toast for status changes
+            if (updatedWorld.generation_status === 'complete') {
+              toast({
+                title: "Lernwelt fertig! ✨",
+                description: `"${updatedWorld.title}" wurde erfolgreich erstellt.`,
+              });
+              // Refresh to get all sections
+              fetchWorlds();
+            } else if (updatedWorld.generation_status === 'error') {
+              toast({
+                title: "Generierung fehlgeschlagen",
+                description: updatedWorld.generation_error || "Ein Fehler ist aufgetreten.",
+                variant: "destructive",
+              });
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const deletedWorld = payload.old as LearningWorld;
+            setWorlds(prevWorlds => prevWorlds.filter(w => w.id !== deletedWorld.id));
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [user, toast]);
+
   const fetchProfile = async () => {
     if (!user) return;
     const { data } = await supabase
@@ -78,7 +158,7 @@ const Dashboard = () => {
         .order("updated_at", { ascending: false });
 
       if (error) throw error;
-      setWorlds(data || []);
+      setWorlds((data || []) as LearningWorld[]);
     } catch (error) {
       console.error("Error fetching worlds:", error);
       toast({

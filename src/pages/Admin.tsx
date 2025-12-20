@@ -7,8 +7,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { 
   Mail, Calendar, User, MessageSquare, Loader2, ShieldAlert, 
-  Users, Crown, BookOpen, Settings 
+  Users, Crown, BookOpen, Settings, Globe, Trash2, Eye, Edit, AlertTriangle
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -49,15 +60,30 @@ interface UserWithDetails {
   world_count: number;
 }
 
+interface LearningWorld {
+  id: string;
+  title: string;
+  creator_id: string;
+  creator_name: string | null;
+  subject: string;
+  status: string;
+  is_public: boolean;
+  created_at: string;
+  view_count: number;
+}
+
 const Admin = () => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [users, setUsers] = useState<UserWithDetails[]>([]);
+  const [worlds, setWorlds] = useState<LearningWorld[]>([]);
   const [loading, setLoading] = useState(true);
   const [usersLoading, setUsersLoading] = useState(true);
+  const [worldsLoading, setWorldsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [activeTab, setActiveTab] = useState("users");
+  const [worldToDelete, setWorldToDelete] = useState<LearningWorld | null>(null);
 
   useEffect(() => {
     const checkAdminAccess = async () => {
@@ -83,10 +109,51 @@ const Admin = () => {
       setCheckingAuth(false);
       fetchMessages();
       fetchUsers();
+      fetchWorlds();
     };
 
     checkAdminAccess();
   }, [navigate]);
+
+  const fetchWorlds = async () => {
+    setWorldsLoading(true);
+    try {
+      // Fetch all worlds
+      const { data: worldsData, error: worldsError } = await supabase
+        .from("learning_worlds")
+        .select("id, title, creator_id, subject, status, is_public, created_at, view_count")
+        .order("created_at", { ascending: false });
+
+      if (worldsError) throw worldsError;
+
+      // Fetch profiles to get creator names
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, display_name");
+
+      if (profilesError) throw profilesError;
+
+      const profileMap = (profiles || []).reduce((acc: Record<string, string>, p) => {
+        acc[p.id] = p.display_name || "Unbekannt";
+        return acc;
+      }, {});
+
+      const worldsWithCreators: LearningWorld[] = (worldsData || []).map(world => ({
+        ...world,
+        creator_name: profileMap[world.creator_id] || "Unbekannt",
+      }));
+
+      setWorlds(worldsWithCreators);
+    } catch (error) {
+      console.error("Error fetching worlds:", error);
+      toast({
+        title: "Fehler",
+        description: "Lernwelten konnten nicht geladen werden.",
+        variant: "destructive",
+      });
+    }
+    setWorldsLoading(false);
+  };
 
   const fetchMessages = async () => {
     setLoading(true);
@@ -249,6 +316,59 @@ const Admin = () => {
     }
   };
 
+  const deleteWorld = async (world: LearningWorld) => {
+    // First delete all sections
+    const { error: sectionsError } = await supabase
+      .from("learning_sections")
+      .delete()
+      .eq("world_id", world.id);
+
+    if (sectionsError) {
+      console.error("Error deleting sections:", sectionsError);
+      toast({
+        title: "Fehler",
+        description: "Sektionen konnten nicht gelöscht werden.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Then delete the world
+    const { error } = await supabase
+      .from("learning_worlds")
+      .delete()
+      .eq("id", world.id);
+
+    if (error) {
+      console.error("Error deleting world:", error);
+      toast({
+        title: "Fehler",
+        description: "Lernwelt konnte nicht gelöscht werden.",
+        variant: "destructive",
+      });
+    } else {
+      setWorlds((prev) => prev.filter((w) => w.id !== world.id));
+      toast({
+        title: "Lernwelt gelöscht",
+        description: `"${world.title}" wurde erfolgreich gelöscht.`,
+      });
+    }
+    setWorldToDelete(null);
+  };
+
+  const getWorldStatusBadge = (status: string, isPublic: boolean) => {
+    if (status === "published" && isPublic) {
+      return <Badge className="bg-green-500 text-white">Öffentlich</Badge>;
+    }
+    if (status === "published") {
+      return <Badge variant="secondary">Veröffentlicht</Badge>;
+    }
+    if (status === "generating") {
+      return <Badge className="bg-amber-500 text-white">Generiert...</Badge>;
+    }
+    return <Badge variant="outline">Entwurf</Badge>;
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "new":
@@ -399,6 +519,13 @@ const Admin = () => {
                   <Users className="h-4 w-4" />
                   Nutzer
                 </TabsTrigger>
+                <TabsTrigger value="worlds" className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  Lernwelten
+                  <Badge variant="secondary" className="ml-1">
+                    {worlds.length}
+                  </Badge>
+                </TabsTrigger>
                 <TabsTrigger value="messages" className="flex items-center gap-2">
                   <MessageSquare className="h-4 w-4" />
                   Nachrichten
@@ -504,6 +631,96 @@ const Admin = () => {
                 )}
               </TabsContent>
 
+              <TabsContent value="worlds">
+                {worldsLoading ? (
+                  <div className="flex items-center justify-center py-20">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : worlds.length === 0 ? (
+                  <div className="text-center py-20">
+                    <Globe className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Keine Lernwelten vorhanden.</p>
+                  </div>
+                ) : (
+                  <div className="bg-card border border-border rounded-xl overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Titel</TableHead>
+                          <TableHead>Creator</TableHead>
+                          <TableHead>Fach</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Views</TableHead>
+                          <TableHead>Erstellt</TableHead>
+                          <TableHead className="text-right">Aktionen</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {worlds.map((world) => (
+                          <TableRow key={world.id}>
+                            <TableCell>
+                              <span className="font-medium">{world.title}</span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <User className="h-4 w-4 text-muted-foreground" />
+                                {world.creator_name}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="capitalize">
+                                {world.subject}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {getWorldStatusBadge(world.status, world.is_public)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <Eye className="h-4 w-4" />
+                                {world.view_count}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {formatDate(world.created_at)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => navigate(`/w/${world.id}`)}
+                                  title="Ansehen"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => navigate(`/world/${world.id}/edit`)}
+                                  title="Bearbeiten"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => setWorldToDelete(world)}
+                                  title="Löschen"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </TabsContent>
+
               <TabsContent value="messages">
                 {loading ? (
                   <div className="flex items-center justify-center py-20">
@@ -586,6 +803,29 @@ const Admin = () => {
       </main>
 
       <Footer />
+
+      <AlertDialog open={!!worldToDelete} onOpenChange={(open) => !open && setWorldToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Lernwelt löschen?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Möchtest du "{worldToDelete?.title}" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden. Alle Sektionen und Inhalte werden ebenfalls gelöscht.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => worldToDelete && deleteWorld(worldToDelete)}
+            >
+              Löschen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

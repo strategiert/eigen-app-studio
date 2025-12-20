@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, BookOpen, FileText, Wand2, Upload, File, X, Mic, Loader2 } from "lucide-react";
+import { Sparkles, BookOpen, FileText, Upload, File, X, Mic, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -29,7 +29,6 @@ import { logger } from "@/lib/logger";
 import { retrySupabaseFunction } from "@/lib/retry";
 
 type SubjectType = Database["public"]["Enums"]["subject_type"];
-type GenerationStage = "uploading" | "extracting" | "analyzing" | "designing" | "generating" | "images" | "finalizing" | "complete";
 
 interface CreateWorldDialogProps {
   open: boolean;
@@ -68,9 +67,8 @@ const ACCEPTED_MIME_TYPES = [
 
 export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: CreateWorldDialogProps) => {
   const [step, setStep] = useState(1);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
-  const [generationStage, setGenerationStage] = useState<GenerationStage>("uploading");
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState<SubjectType>("allgemein");
   const [sourceContent, setSourceContent] = useState("");
@@ -86,9 +84,8 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
     setSourceContent("");
     setUploadedFile(null);
     setContentMode("text");
-    setIsGenerating(false);
+    setIsStarting(false);
     setIsUploadingFile(false);
-    setGenerationStage("uploading");
   };
 
   const handleClose = () => {
@@ -121,14 +118,11 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
 
     setUploadedFile(file);
     setIsUploadingFile(true);
-    setGenerationStage("uploading");
 
     try {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Nicht angemeldet");
-
-      setGenerationStage("extracting");
 
       // Upload to Supabase Storage
       const filePath = `${user.id}/${Date.now()}-${file.name}`;
@@ -190,7 +184,7 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
     return <File className="w-6 h-6 text-moon" />;
   };
 
-  const handleGenerate = async () => {
+  const handleStartGeneration = async () => {
     if (!title.trim() || !sourceContent.trim()) {
       toast({
         title: "Fehlende Eingaben",
@@ -200,9 +194,7 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
       return;
     }
 
-    setIsGenerating(true);
-    setStep(3); // Show generation progress
-    setGenerationStage("analyzing");
+    setIsStarting(true);
 
     try {
       logger.userAction('create_world_started', { title, contentLength: sourceContent.length });
@@ -387,47 +379,39 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
       toast({
         title: "Fehler",
         description: userMessage,
+      // Call the new start-generation edge function
+      const { data, error } = await supabase.functions.invoke("start-generation", {
+        body: { title, subject, sourceContent },
+      });
+
+      if (error) {
+        throw new Error(error.message || "Generierung konnte nicht gestartet werden");
+      }
+
+      if (!data?.worldId) {
+        throw new Error("Keine World-ID erhalten");
+      }
+
+      console.log("Generation started for world:", data.worldId);
+
+      // Close dialog and show success toast
+      toast({
+        title: "Generierung gestartet! ✨",
+        description: `"${title}" wird im Hintergrund erstellt. Du kannst den Tab verlassen.`,
+      });
+
+      handleClose();
+      onWorldCreated();
+    } catch (error) {
+      console.error("Error starting generation:", error);
+      toast({
+        title: "Fehler",
+        description: error instanceof Error ? error.message : "Konnte die Generierung nicht starten.",
         variant: "destructive",
       });
-      setStep(2); // Go back to content step
     } finally {
-      setIsGenerating(false);
+      setIsStarting(false);
     }
-  };
-
-  // Helper to detect subject from content analysis
-  const detectSubjectFromAnalysis = (analysis: any): SubjectType => {
-    if (!analysis) return subject;
-    
-    const keywords = analysis.theme?.keywords?.join(' ').toLowerCase() || '';
-    const mainTopic = analysis.theme?.mainTopic?.toLowerCase() || '';
-    const combined = `${keywords} ${mainTopic}`;
-    
-    const subjectMappings: Record<string, string[]> = {
-      mathematik: ['rechnen', 'mathe', 'zahlen', 'bruch', 'gleichung', 'geometrie', 'algebra'],
-      deutsch: ['grammatik', 'rechtschreibung', 'lesen', 'schreiben', 'text', 'gedicht', 'literatur'],
-      englisch: ['english', 'vocabulary', 'grammar', 'language'],
-      geschichte: ['geschichte', 'historisch', 'krieg', 'kaiser', 'mittelalter', 'reformation', 'luther', 'revolution'],
-      biologie: ['biologie', 'zelle', 'pflanze', 'tier', 'körper', 'evolution'],
-      physik: ['physik', 'kraft', 'energie', 'atom', 'elektrizität'],
-      chemie: ['chemie', 'element', 'molekül', 'reaktion'],
-      geografie: ['geografie', 'erdkunde', 'land', 'kontinent', 'klima'],
-      kunst: ['kunst', 'malen', 'zeichnen', 'künstler'],
-      musik: ['musik', 'note', 'instrument', 'komponist'],
-      sport: ['sport', 'bewegung', 'training'],
-      informatik: ['informatik', 'computer', 'programmieren', 'code'],
-      religion: ['religion', 'glaube', 'kirche', 'bibel', 'gott']
-    };
-
-    for (const [subj, kws] of Object.entries(subjectMappings)) {
-      for (const kw of kws) {
-        if (combined.includes(kw)) {
-          return subj as SubjectType;
-        }
-      }
-    }
-    
-    return subject;
   };
 
   return (
@@ -444,30 +428,28 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
         </DialogHeader>
 
         {/* Step indicators */}
-        {step < 3 && (
-          <div className="flex items-center gap-2 mb-6">
-            {[1, 2].map((s) => (
-              <div key={s} className="flex items-center">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
-                    step >= s
-                      ? "bg-moon text-night-sky"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {s}
-                </div>
-                {s < 2 && (
-                  <div
-                    className={`w-16 h-0.5 mx-2 transition-all ${
-                      step > s ? "bg-moon" : "bg-muted"
-                    }`}
-                  />
-                )}
+        <div className="flex items-center gap-2 mb-6">
+          {[1, 2].map((s) => (
+            <div key={s} className="flex items-center">
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
+                  step >= s
+                    ? "bg-moon text-night-sky"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {s}
               </div>
-            ))}
-          </div>
-        )}
+              {s < 2 && (
+                <div
+                  className={`w-16 h-0.5 mx-2 transition-all ${
+                    step > s ? "bg-moon" : "bg-muted"
+                  }`}
+                />
+              )}
+            </div>
+          ))}
+        </div>
 
         <AnimatePresence mode="wait">
           {step === 1 && (
@@ -532,116 +514,101 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
               exit={{ opacity: 0, x: -20 }}
               className="space-y-4"
             >
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Lerninhalt
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  Füge Text ein, lade eine Datei hoch oder nutze Spracheingabe.
-                </p>
-              </div>
-
-              <Tabs value={contentMode} onValueChange={(v) => setContentMode(v as "text" | "file" | "voice")} className="w-full">
+              <Tabs value={contentMode} onValueChange={(v) => setContentMode(v as "text" | "file" | "voice")}>
                 <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="text" className="gap-1">
-                    <FileText className="w-3 h-3" />
+                  <TabsTrigger value="text" className="flex items-center gap-1">
+                    <FileText className="w-4 h-4" />
                     Text
                   </TabsTrigger>
-                  <TabsTrigger value="file" className="gap-1">
-                    <Upload className="w-3 h-3" />
+                  <TabsTrigger value="file" className="flex items-center gap-1">
+                    <Upload className="w-4 h-4" />
                     Datei
                   </TabsTrigger>
-                  <TabsTrigger value="voice" className="gap-1">
-                    <Mic className="w-3 h-3" />
+                  <TabsTrigger value="voice" className="flex items-center gap-1">
+                    <Mic className="w-4 h-4" />
                     Sprache
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="text" className="mt-4">
+                <TabsContent value="text" className="space-y-2">
+                  <Label>Lerninhalt eingeben</Label>
                   <Textarea
-                    placeholder="Kopiere hier den Lernstoff hinein... Texte aus Büchern, Arbeitsblättern, Wikipedia, etc."
+                    placeholder="Füge hier deinen Lernstoff ein: Schulbuchkapitel, Notizen, Wikipedia-Artikel..."
                     value={sourceContent}
                     onChange={(e) => setSourceContent(e.target.value)}
                     className="min-h-[200px] bg-background/50"
                   />
                 </TabsContent>
 
-                <TabsContent value="file" className="mt-4">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept={ACCEPTED_TYPES}
-                    onChange={handleFileSelect}
-                    className="hidden"
-                  />
+                <TabsContent value="file" className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Datei hochladen</Label>
+                    <p className="text-sm text-muted-foreground">
+                      PDF, Word-Dokumente oder Bilder (max. 50 MB)
+                    </p>
+                  </div>
 
                   {!uploadedFile ? (
                     <div
+                      className="border-2 border-dashed border-border/50 rounded-lg p-8 text-center hover:border-moon/50 transition-colors cursor-pointer"
                       onClick={() => fileInputRef.current?.click()}
-                      className="border-2 border-dashed border-border/50 rounded-xl p-8 text-center cursor-pointer hover:border-moon/50 hover:bg-moon/5 transition-all"
                     >
                       <Upload className="w-10 h-10 mx-auto mb-4 text-muted-foreground" />
-                      <p className="text-foreground font-medium mb-1">Datei auswählen</p>
-                      <p className="text-sm text-muted-foreground">
-                        PDF, Word, oder Bilder (max. 50 MB)
+                      <p className="text-muted-foreground mb-2">
+                        Klicke zum Hochladen oder ziehe eine Datei hierher
                       </p>
+                      <p className="text-xs text-muted-foreground">
+                        PDF, DOCX, DOC, JPG, PNG, WEBP, GIF
+                      </p>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept={ACCEPTED_TYPES}
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
                     </div>
                   ) : (
-                    <div className="border border-border/50 rounded-xl p-4 bg-background/50">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-moon/10 rounded-lg">
-                          {getFileIcon(uploadedFile.type)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-foreground truncate">{uploadedFile.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {isUploadingFile ? "Wird verarbeitet..." : "Erfolgreich verarbeitet"}
-                          </p>
-                        </div>
-                        {!isUploadingFile && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={handleRemoveFile}
-                            className="text-muted-foreground hover:text-destructive"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        )}
-                        {isUploadingFile && (
-                          <Loader2 className="w-5 h-5 animate-spin text-moon" />
-                        )}
+                    <div className="bg-background/50 rounded-lg p-4 flex items-center gap-3">
+                      {getFileIcon(uploadedFile.type)}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{uploadedFile.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
                       </div>
+                      {isUploadingFile ? (
+                        <Loader2 className="w-5 h-5 animate-spin text-moon" />
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={handleRemoveFile}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   )}
 
-                  {sourceContent && contentMode === "file" && (
-                    <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                      <p className="text-sm text-muted-foreground">
-                        <span className="font-medium text-foreground">{sourceContent.length.toLocaleString()}</span> Zeichen extrahiert
+                  {sourceContent && uploadedFile && (
+                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                      <p className="text-sm text-green-400">
+                        ✓ {sourceContent.length.toLocaleString()} Zeichen extrahiert
                       </p>
                     </div>
                   )}
                 </TabsContent>
 
-                <TabsContent value="voice" className="mt-4">
-                  <VoiceRecorder 
-                    onTranscript={handleVoiceTranscript}
-                    disabled={isUploadingFile}
-                  />
+                <TabsContent value="voice" className="space-y-4">
+                  <VoiceRecorder onTranscript={handleVoiceTranscript} />
                   
                   {sourceContent && contentMode === "voice" && (
-                    <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                      <p className="text-sm text-muted-foreground mb-2">
-                        <span className="font-medium text-foreground">{sourceContent.length.toLocaleString()}</span> Zeichen transkribiert
+                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                      <p className="text-sm text-green-400">
+                        ✓ {sourceContent.length.toLocaleString()} Zeichen transkribiert
                       </p>
-                      <Textarea
-                        value={sourceContent}
-                        onChange={(e) => setSourceContent(e.target.value)}
-                        className="min-h-[100px] bg-background/50"
-                        placeholder="Transkribierter Text erscheint hier..."
-                      />
                     </div>
                   )}
                 </TabsContent>
@@ -656,35 +623,23 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
                   Zurück
                 </Button>
                 <Button
-                  onClick={handleGenerate}
-                  disabled={isGenerating || isUploadingFile || !sourceContent.trim()}
-                  className="flex-1 bg-gradient-to-r from-moon to-aurora text-night-sky hover:opacity-90"
+                  onClick={handleStartGeneration}
+                  disabled={!sourceContent.trim() || isStarting || isUploadingFile}
+                  className="flex-1 bg-moon text-night-sky hover:bg-moon-glow"
                 >
-                  {isGenerating ? (
+                  {isStarting ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Generiere...
+                      Wird gestartet...
                     </>
                   ) : (
                     <>
-                      <Wand2 className="w-4 h-4 mr-2" />
-                      Mit KI generieren
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Lernwelt erstellen
                     </>
                   )}
                 </Button>
               </div>
-            </motion.div>
-          )}
-
-          {step === 3 && (
-            <motion.div
-              key="step3"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="py-8"
-            >
-              <GenerationProgress stage={generationStage} />
             </motion.div>
           )}
         </AnimatePresence>
