@@ -1,15 +1,19 @@
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { Button } from "@/components/ui/button";
 import { Check, Sparkles, School, Rocket } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 const plans = [
   {
     name: "Kostenlos",
-    price: "0€",
+    monthlyPrice: "0€",
+    yearlyPrice: "0€",
     period: "für immer",
+    yearlyPeriod: "für immer",
     description: "Perfekt zum Ausprobieren",
     icon: Sparkles,
     features: [
@@ -20,11 +24,14 @@ const plans = [
     ],
     cta: "Kostenlos starten",
     highlighted: false,
+    yearlySaving: null,
   },
   {
     name: "Pro",
-    price: "9€",
+    monthlyPrice: "9€",
+    yearlyPrice: "7€",
     period: "pro Monat",
+    yearlyPeriod: "pro Monat",
     description: "Für engagierte Lehrer:innen",
     icon: Rocket,
     features: [
@@ -37,11 +44,14 @@ const plans = [
     ],
     cta: "Pro werden",
     highlighted: true,
+    yearlySaving: "24€",
   },
   {
     name: "Schule",
-    price: "Individuell",
+    monthlyPrice: "Individuell",
+    yearlyPrice: "Individuell",
     period: "pro Schule",
+    yearlyPeriod: "pro Schule",
     description: "Für ganze Schulen & Institutionen",
     icon: School,
     features: [
@@ -55,17 +65,20 @@ const plans = [
     ],
     cta: "Kontakt aufnehmen",
     highlighted: false,
+    yearlySaving: null,
   },
 ];
 
 const Pricing = () => {
+  const [isYearly, setIsYearly] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       
       <main className="pt-24 pb-16">
         {/* Hero Section */}
-        <section className="container mx-auto px-4 mb-16">
+        <section className="container mx-auto px-4 mb-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -78,6 +91,40 @@ const Pricing = () => {
             <p className="text-xl text-muted-foreground">
               Ob einzelner Lehrer oder ganze Schule – wir haben den passenden Plan für dich.
             </p>
+          </motion.div>
+        </section>
+
+        {/* Billing Toggle */}
+        <section className="container mx-auto px-4 mb-12">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+            className="flex items-center justify-center gap-4"
+          >
+            <span className={`text-sm font-medium transition-colors ${!isYearly ? 'text-foreground' : 'text-muted-foreground'}`}>
+              Monatlich
+            </span>
+            <Switch
+              checked={isYearly}
+              onCheckedChange={setIsYearly}
+              aria-label="Zwischen monatlicher und jährlicher Abrechnung wechseln"
+            />
+            <span className={`text-sm font-medium transition-colors ${isYearly ? 'text-foreground' : 'text-muted-foreground'}`}>
+              Jährlich
+            </span>
+            <AnimatePresence>
+              {isYearly && (
+                <motion.span
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="bg-primary/10 text-primary text-xs font-medium px-2.5 py-1 rounded-full"
+                >
+                  Spare bis zu 22%
+                </motion.span>
+              )}
+            </AnimatePresence>
           </motion.div>
         </section>
 
@@ -102,6 +149,17 @@ const Pricing = () => {
                   </div>
                 )}
                 
+                {/* Yearly savings badge */}
+                {isYearly && plan.yearlySaving && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute -top-3 right-4 bg-green-500 text-white text-xs font-medium px-2.5 py-1 rounded-full"
+                  >
+                    Spare {plan.yearlySaving}/Jahr
+                  </motion.div>
+                )}
+                
                 <div className="text-center mb-6">
                   <plan.icon className={`h-10 w-10 mx-auto mb-3 ${
                     plan.highlighted ? "text-primary" : "text-muted-foreground"
@@ -110,9 +168,28 @@ const Pricing = () => {
                   <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
                 </div>
 
-                <div className="text-center mb-6">
-                  <span className="text-4xl font-bold text-foreground">{plan.price}</span>
-                  <span className="text-muted-foreground ml-1">/{plan.period}</span>
+                <div className="text-center mb-6 h-16 flex flex-col justify-center">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={isYearly ? 'yearly' : 'monthly'}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <span className="text-4xl font-bold text-foreground">
+                        {isYearly ? plan.yearlyPrice : plan.monthlyPrice}
+                      </span>
+                      <span className="text-muted-foreground ml-1">
+                        /{isYearly ? plan.yearlyPeriod : plan.period}
+                      </span>
+                      {isYearly && plan.yearlySaving && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Jährlich abgerechnet
+                        </p>
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
 
                 <ul className="space-y-3 mb-6">

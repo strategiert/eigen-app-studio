@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/landing/Footer";
+import { ContactForm } from "@/components/contact/ContactForm";
 import { Heart, Sparkles, Users, GraduationCap } from "lucide-react";
 
 const About = () => {
@@ -149,6 +150,13 @@ const About = () => {
               </div>
             </div>
           </motion.div>
+        </section>
+
+        {/* Contact Form Section */}
+        <section className="bg-muted/30 py-16">
+          <div className="container mx-auto px-4">
+            <ContactForm />
+          </div>
         </section>
       </main>
 
