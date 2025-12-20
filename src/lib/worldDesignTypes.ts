@@ -41,6 +41,26 @@ export interface WorldDesign {
   };
 }
 
+// Helper to safely extract numeric color values from design
+function safeColorValues(design: WorldDesign | null): {
+  primaryHue: number;
+  saturation: number;
+  accentHue: number;
+  mood: string;
+  era: string;
+  patternStyle: string;
+} {
+  const vi = design?.visualIdentity;
+  return {
+    primaryHue: typeof vi?.primaryHue === 'number' ? vi.primaryHue : 220,
+    saturation: typeof vi?.saturation === 'number' ? vi.saturation : 70,
+    accentHue: typeof vi?.accentHue === 'number' ? vi.accentHue : 280,
+    mood: vi?.mood || 'playful',
+    era: vi?.era || 'modern',
+    patternStyle: vi?.patternStyle || 'geometric',
+  };
+}
+
 /**
  * Get CSS variables for a world's unique visual identity
  */
@@ -49,7 +69,7 @@ export function getWorldCSSVariables(design: WorldDesign | null): React.CSSPrope
     return {};
   }
   
-  const { primaryHue, saturation, accentHue, mood } = design.visualIdentity;
+  const { primaryHue, saturation, accentHue, mood } = safeColorValues(design);
   
   // Mood-based lightness adjustments
   const baseLightness = mood === 'mystical' ? 35 : mood === 'serious' ? 40 : 45;
@@ -71,8 +91,8 @@ export function getWorldPrimaryColor(design: WorldDesign | null): string {
   if (!design?.visualIdentity) {
     return 'hsl(var(--primary))';
   }
-  const { primaryHue, saturation } = design.visualIdentity;
-  const lightness = design.visualIdentity.mood === 'mystical' ? 35 : 45;
+  const { primaryHue, saturation, mood } = safeColorValues(design);
+  const lightness = mood === 'mystical' ? 35 : 45;
   return `hsl(${primaryHue}, ${saturation}%, ${lightness}%)`;
 }
 
@@ -83,7 +103,7 @@ export function getWorldAccentColor(design: WorldDesign | null): string {
   if (!design?.visualIdentity) {
     return 'hsl(var(--accent))';
   }
-  const { accentHue, saturation, mood } = design.visualIdentity;
+  const { accentHue, saturation, mood } = safeColorValues(design);
   const lightness = mood === 'playful' ? 55 : 50;
   return `hsl(${accentHue}, ${saturation}%, ${lightness}%)`;
 }
@@ -96,7 +116,7 @@ export function getWorldGradient(design: WorldDesign | null): string {
     return 'linear-gradient(135deg, hsl(var(--background)), hsl(var(--muted)))';
   }
   
-  const { primaryHue, saturation, accentHue, mood, era } = design.visualIdentity;
+  const { primaryHue, saturation, accentHue, mood, era } = safeColorValues(design);
   
   // Era-based gradient angles
   const angle = era === 'ancient' ? 180 : era === 'futuristic' ? 135 : 160;
@@ -118,7 +138,7 @@ export function getWorldPattern(design: WorldDesign | null): string {
     return 'none';
   }
 
-  const { patternStyle, primaryHue, saturation } = design.visualIdentity;
+  const { patternStyle, primaryHue, saturation } = safeColorValues(design);
   const patternColor = `hsla(${primaryHue}, ${saturation}%, 50%, 0.03)`;
 
   switch (patternStyle) {
@@ -166,20 +186,26 @@ export function getWorldTypographyStyles(design: WorldDesign | null): {
   bodyFont: string;
   bodyLineHeight: string;
 } {
+  // Default fallback values
+  const defaults = {
+    headingFont: 'inherit',
+    headingWeight: 700,
+    headingLetterSpacing: 'normal',
+    bodyFont: 'inherit',
+    bodyLineHeight: '1.6'
+  };
+
+  // Early return if no valid design or visualIdentity
   if (!design?.visualIdentity) {
-    return {
-      headingFont: 'inherit',
-      headingWeight: 700,
-      headingLetterSpacing: 'normal',
-      bodyFont: 'inherit',
-      bodyLineHeight: '1.6'
-    };
+    return defaults;
   }
 
-  const { era, mood } = design.visualIdentity;
+  // Safely extract era and mood with fallbacks
+  const era = design.visualIdentity.era || 'timeless';
+  const mood = design.visualIdentity.mood || 'playful';
 
   // Era-based font families
-  const eraFonts: Record<typeof era, { heading: string; body: string }> = {
+  const eraFonts: Record<string, { heading: string; body: string }> = {
     ancient: {
       heading: 'Georgia, "Times New Roman", serif',
       body: 'Georgia, serif'
@@ -211,7 +237,8 @@ export function getWorldTypographyStyles(design: WorldDesign | null): {
   const headingLetterSpacing = mood === 'serious' ? '-0.02em' : mood === 'playful' ? '0.01em' : 'normal';
   const bodyLineHeight = mood === 'mystical' ? '1.8' : mood === 'playful' ? '1.6' : '1.65';
 
-  const fonts = eraFonts[era];
+  // Safe access with fallback to timeless
+  const fonts = eraFonts[era] || eraFonts.timeless;
 
   return {
     headingFont: fonts.heading,
