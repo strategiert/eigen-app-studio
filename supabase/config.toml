@@ -1,1 +1,4 @@
 project_id = "orrqbsuzxrkoobctkvek"
+
+[functions.generate-world]
+verify_jwt = true
