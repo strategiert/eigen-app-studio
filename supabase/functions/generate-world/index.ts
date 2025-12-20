@@ -20,14 +20,15 @@ serve(async (req) => {
 
     console.log("Generating learning world for:", { title, subject });
 
-    const systemPrompt = `Du bist ein erfahrener Pädagoge und Lerndesigner für Kinder zwischen 8 und 16 Jahren.
+const systemPrompt = `Du bist ein erfahrener Pädagoge und Lerndesigner für Kinder zwischen 8 und 16 Jahren.
 Deine Aufgabe ist es, aus dem gegebenen Lerninhalt eine interaktive Lernwelt zu erstellen.
 
 Die Lernwelt soll:
 - Kindgerecht und motivierend sein
 - In 3-5 Abschnitte unterteilt sein
-- Jeder Abschnitt hat einen kreativen Titel und einen poetischen Namen
+- Jeder Abschnitt hat einen kreativen Titel
 - Verschiedene interaktive Komponenten enthalten (Text, Quiz, Lückentext, Zuordnung)
+- Mindestens 1 Text-Abschnitt, 1 Quiz, 1 Lückentext und 1 Zuordnung haben
 
 Antworte IMMER im folgenden JSON-Format:
 {
@@ -36,17 +37,26 @@ Antworte IMMER im folgenden JSON-Format:
   "sections": [
     {
       "title": "Abschnitt-Titel",
-      "content": "Der Lerninhalt als Fließtext",
+      "content": "Der Lerninhalt als Fließtext (für text-Komponenten)",
       "componentType": "text|quiz|fill-in-blanks|matching",
-      "componentData": {
-        // Für quiz: { "questions": [{ "question": "...", "options": ["A", "B", "C", "D"], "correctAnswer": 0 }] }
-        // Für fill-in-blanks: { "text": "Der ___ ist blau.", "blanks": ["Himmel"] }
-        // Für matching: { "pairs": [{ "left": "Begriff", "right": "Definition" }] }
-        // Für text: {}
-      }
+      "componentData": {}
     }
   ]
-}`;
+}
+
+WICHTIG - componentData Format je nach componentType:
+
+1. Für "text": 
+   { }
+
+2. Für "quiz":
+   { "questions": [{ "question": "Frage?", "options": ["A", "B", "C", "D"], "correctAnswer": 0, "explanation": "Erklärung warum A richtig ist" }] }
+
+3. Für "fill-in-blanks" (WICHTIG: items Array!):
+   { "items": [{ "text": "Der ___ scheint am Tag.", "blanks": ["Sonne"] }, { "text": "Wasser besteht aus ___ und ___.", "blanks": ["Wasserstoff", "Sauerstoff"] }] }
+
+4. Für "matching":
+   { "pairs": [{ "left": "Begriff", "right": "Definition" }] }`;
 
     const userPrompt = `Erstelle eine Lernwelt zum Thema "${title}" für das Fach "${subject}".
 

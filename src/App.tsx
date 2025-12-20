@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import WorldView from "./pages/WorldView";
+import WorldEdit from "./pages/WorldEdit";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/w/:worldId" element={<WorldView />} />
+          <Route path="/world/:worldId/edit" element={<WorldEdit />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </TooltipProvider>
