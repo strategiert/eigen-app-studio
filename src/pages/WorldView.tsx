@@ -11,6 +11,7 @@ import { CompletionCelebration, StarCollectAnimation } from '@/components/world/
 import { useWorldProgress } from '@/hooks/useWorldProgress';
 import { useAuth } from '@/hooks/useAuth';
 import { getSubjectTheme, type SubjectType, type MoonPhase } from '@/lib/subjectTheme';
+import { type WorldVisualTheme, getWorldGradient, getWorldPattern, defaultWorldTheme } from '@/lib/worldTheme';
 import type { Json } from '@/integrations/supabase/types';
 
 interface LearningWorld {
@@ -23,6 +24,7 @@ interface LearningWorld {
   is_public: boolean;
   status: string;
   creator_id: string;
+  visual_theme: WorldVisualTheme | null;
 }
 
 interface LearningModule {
@@ -83,7 +85,10 @@ export default function WorldView() {
           return;
         }
 
-        setWorld(worldData as LearningWorld);
+        setWorld({
+          ...worldData,
+          visual_theme: worldData.visual_theme as unknown as WorldVisualTheme | null
+        } as LearningWorld);
 
         // Fetch modules (formerly sections)
         const { data: modulesData, error: modulesError } = await supabase
@@ -113,9 +118,23 @@ export default function WorldView() {
     fetchWorld();
   }, [worldId]);
 
-  const theme = useMemo(() => {
+  const subjectTheme = useMemo(() => {
     return world ? getSubjectTheme(world.subject) : null;
   }, [world?.subject]);
+
+  const visualTheme = useMemo(() => {
+    return world?.visual_theme || defaultWorldTheme;
+  }, [world?.visual_theme]);
+
+  const worldBackground = useMemo(() => {
+    if (!visualTheme) return undefined;
+    return getWorldGradient(visualTheme);
+  }, [visualTheme]);
+
+  const worldPattern = useMemo(() => {
+    if (!visualTheme) return undefined;
+    return getWorldPattern(visualTheme);
+  }, [visualTheme]);
 
   const completedModules = useMemo(() => {
     return new Set(
@@ -229,9 +248,10 @@ export default function WorldView() {
 
   return (
     <div 
-      className="min-h-screen bg-background"
+      className="min-h-screen"
       style={{
-        backgroundImage: theme?.pattern,
+        background: worldBackground,
+        backgroundImage: worldPattern,
         backgroundAttachment: 'fixed'
       }}
     >
@@ -259,7 +279,7 @@ export default function WorldView() {
           currentIndex={currentModuleIndex}
           completedSections={completedModules}
           onNavigate={handleNavigate}
-          subjectColor={theme?.color || 'hsl(var(--primary))'}
+          subjectColor={subjectTheme?.color || 'hsl(var(--primary))'}
         />
 
         {/* Current module */}
@@ -277,7 +297,7 @@ export default function WorldView() {
                   ...currentModule,
                   component_data: currentModule.component_data as Record<string, unknown>
                 }}
-                subjectColor={theme?.color || 'hsl(var(--primary))'}
+                subjectColor={subjectTheme?.color || 'hsl(var(--primary))'}
                 worldId={worldId || ''}
                 subject={world.subject}
                 onComplete={handleModuleComplete}
@@ -311,7 +331,7 @@ export default function WorldView() {
             onClick={handleNext}
             disabled={currentModuleIndex === modules.length - 1}
             className="gap-2"
-            style={{ backgroundColor: theme?.color }}
+            style={{ backgroundColor: subjectTheme?.color }}
           >
             Weiter
             <ChevronRight className="h-4 w-4" />

@@ -27,7 +27,7 @@ import { VoiceRecorder } from "./VoiceRecorder";
 import { GenerationProgress } from "./GenerationProgress";
 
 type SubjectType = Database["public"]["Enums"]["subject_type"];
-type GenerationStage = "uploading" | "extracting" | "analyzing" | "generating" | "finalizing" | "complete";
+type GenerationStage = "uploading" | "extracting" | "analyzing" | "generating" | "images" | "finalizing" | "complete";
 
 interface CreateWorldDialogProps {
   open: boolean;
@@ -220,17 +220,22 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Nicht angemeldet");
 
-      // Create the learning world
+      // Use detected subject from AI if available
+      const finalSubject = aiData.detectedSubject || subject;
+
+      // Create the learning world with visual theme
       const { data: world, error: worldError } = await supabase
         .from("learning_worlds")
         .insert({
           title,
-          subject,
+          subject: finalSubject,
           creator_id: user.id,
           poetic_name: aiData.poeticName || null,
           description: aiData.description || null,
           source_content: sourceContent,
           generated_code: JSON.stringify(aiData),
+          visual_theme: aiData.visualTheme || {},
+          detected_subject: aiData.detectedSubject || null,
           status: "draft",
           moon_phase: "neumond",
         })
@@ -239,7 +244,7 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
 
       if (worldError) throw worldError;
 
-      // Create the learning sections/modules
+      // Create the learning sections/modules with image prompts
       if (aiData.sections && world) {
         const sections = aiData.sections.map((section: {
           title: string;
@@ -247,6 +252,7 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
           moduleType?: string;
           componentType: string;
           componentData: Record<string, unknown>;
+          imagePrompt?: string;
         }, index: number) => ({
           world_id: world.id,
           title: section.title,
@@ -254,15 +260,43 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
           module_type: section.moduleType || "knowledge",
           component_type: section.componentType || "text",
           component_data: section.componentData || {},
+          image_prompt: section.imagePrompt || null,
           order_index: index,
         }));
 
-        const { error: sectionsError } = await supabase
+        const { data: createdSections, error: sectionsError } = await supabase
           .from("learning_sections")
-          .insert(sections);
+          .insert(sections)
+          .select();
 
         if (sectionsError) {
           console.error("Error creating sections:", sectionsError);
+        }
+
+        // Generate images for each section in the background
+        if (createdSections && createdSections.length > 0) {
+          setGenerationStage("images");
+          
+          // Generate images for first 3 sections to save time
+          const sectionsToGenerate = createdSections.slice(0, 3);
+          
+          for (const section of sectionsToGenerate) {
+            if (section.image_prompt) {
+              try {
+                await supabase.functions.invoke("generate-image", {
+                  body: {
+                    prompt: section.image_prompt,
+                    sectionId: section.id,
+                    worldId: world.id,
+                    subject: finalSubject,
+                  },
+                });
+              } catch (imgError) {
+                console.error("Error generating image for section:", section.id, imgError);
+                // Continue with other sections even if one fails
+              }
+            }
+          }
         }
       }
 
