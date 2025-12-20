@@ -70,6 +70,8 @@ export type Database = {
           creator_id: string
           description: string | null
           detected_subject: string | null
+          fork_count: number | null
+          forked_from_id: string | null
           generated_code: string | null
           id: string
           is_public: boolean
@@ -82,6 +84,7 @@ export type Database = {
           thumbnail_url: string | null
           title: string
           updated_at: string
+          view_count: number | null
           visual_theme: Json | null
         }
         Insert: {
@@ -89,6 +92,8 @@ export type Database = {
           creator_id: string
           description?: string | null
           detected_subject?: string | null
+          fork_count?: number | null
+          forked_from_id?: string | null
           generated_code?: string | null
           id?: string
           is_public?: boolean
@@ -101,6 +106,7 @@ export type Database = {
           thumbnail_url?: string | null
           title: string
           updated_at?: string
+          view_count?: number | null
           visual_theme?: Json | null
         }
         Update: {
@@ -108,6 +114,8 @@ export type Database = {
           creator_id?: string
           description?: string | null
           detected_subject?: string | null
+          fork_count?: number | null
+          forked_from_id?: string | null
           generated_code?: string | null
           id?: string
           is_public?: boolean
@@ -120,34 +128,55 @@ export type Database = {
           thumbnail_url?: string | null
           title?: string
           updated_at?: string
+          view_count?: number | null
           visual_theme?: Json | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "learning_worlds_forked_from_id_fkey"
+            columns: ["forked_from_id"]
+            isOneToOne: false
+            referencedRelation: "learning_worlds"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           created_at: string
           display_name: string | null
           email: string | null
           id: string
+          is_public: boolean | null
+          school: string | null
           updated_at: string
+          website: string | null
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null
           id: string
+          is_public?: boolean | null
+          school?: string | null
           updated_at?: string
+          website?: string | null
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null
           id?: string
+          is_public?: boolean | null
+          school?: string | null
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -263,6 +292,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_world_rating: {
+        Args: { world_uuid: string }
+        Returns: {
+          average_rating: number
+          total_ratings: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -270,6 +306,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_fork_count: { Args: { world_uuid: string }; Returns: undefined }
+      increment_view_count: { Args: { world_uuid: string }; Returns: undefined }
       upgrade_to_creator: { Args: never; Returns: undefined }
     }
     Enums: {

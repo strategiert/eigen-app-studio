@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, LogIn, LogOut, LayoutDashboard } from "lucide-react";
+import { Menu, X, LogIn, LogOut, LayoutDashboard, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MoonLogo } from "@/components/icons/MoonLogo";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
@@ -84,6 +85,13 @@ export const Navbar = () => {
             
             {user ? (
               <div className="flex items-center gap-3">
+                <Link to={`/profile/${user.id}`}>
+                  <Avatar className="h-8 w-8 hover:ring-2 ring-primary/50 transition-all">
+                    <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                      {(user.email?.[0] || "?").toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
                 <Button asChild variant={isScrolled ? "outline" : "ghost"} size="sm" className={!isScrolled ? "text-white border-white/20" : ""}>
                   <Link to="/dashboard">
                     <LayoutDashboard className="w-4 h-4 mr-2" />
@@ -96,8 +104,7 @@ export const Navbar = () => {
                   size="sm"
                   className={!isScrolled ? "text-white/70 hover:text-white" : ""}
                 >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Abmelden
+                  <LogOut className="w-4 h-4" />
                 </Button>
               </div>
             ) : (
@@ -151,6 +158,13 @@ export const Navbar = () => {
               
               {user ? (
                 <>
+                  <Link 
+                    to={`/profile/${user.id}`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="py-2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Mein Profil
+                  </Link>
                   <Link 
                     to="/dashboard" 
                     onClick={() => setIsMobileMenuOpen(false)}
