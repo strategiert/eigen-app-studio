@@ -321,6 +321,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_subscriptions: {
+        Row: {
+          created_at: string
+          id: string
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          updated_at: string
+          user_id: string
+          valid_until: string | null
+          world_limit: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          updated_at?: string
+          user_id: string
+          valid_until?: string | null
+          world_limit?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          updated_at?: string
+          user_id?: string
+          valid_until?: string | null
+          world_limit?: number
+        }
+        Relationships: []
+      }
       world_ratings: {
         Row: {
           comment: string | null
@@ -361,6 +391,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_world_limit: {
+        Args: { check_user_id: string }
+        Returns: {
+          can_create: boolean
+          current_count: number
+          current_plan: Database["public"]["Enums"]["subscription_plan"]
+          max_limit: number
+        }[]
+      }
       get_follower_count: { Args: { user_uuid: string }; Returns: number }
       get_following_count: { Args: { user_uuid: string }; Returns: number }
       get_public_profile: {
@@ -416,6 +455,7 @@ export type Database = {
         | "sport"
         | "informatik"
         | "allgemein"
+      subscription_plan: "free" | "pro" | "school"
       world_status: "draft" | "published" | "archived"
     }
     CompositeTypes: {
@@ -561,6 +601,7 @@ export const Constants = {
         "informatik",
         "allgemein",
       ],
+      subscription_plan: ["free", "pro", "school"],
       world_status: ["draft", "published", "archived"],
     },
   },

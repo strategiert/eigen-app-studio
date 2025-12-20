@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
-import { Plus, Search, Filter } from "lucide-react";
+import { Plus, Search, Filter, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -17,6 +18,9 @@ interface DashboardHeaderProps {
   filterSubject: string;
   onFilterChange: (subject: string) => void;
   onCreateClick: () => void;
+  currentCount?: number;
+  maxLimit?: number;
+  currentPlan?: "free" | "pro" | "school";
 }
 
 const subjects = [
@@ -43,7 +47,11 @@ export const DashboardHeader = ({
   filterSubject,
   onFilterChange,
   onCreateClick,
+  currentCount = 0,
+  maxLimit = 3,
+  currentPlan = "free",
 }: DashboardHeaderProps) => {
+  const planLabel = currentPlan === "pro" ? "Pro" : currentPlan === "school" ? "Schule" : "Free";
   return (
     <motion.div
       initial={{ opacity: 0, y: -20 }}
@@ -52,11 +60,25 @@ export const DashboardHeader = ({
     >
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            Guten Tag, {userName || "Lehrer"} 👋
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-foreground">
+              Guten Tag, {userName || "Lehrer"} 👋
+            </h1>
+            <Badge 
+              variant={currentPlan === "free" ? "outline" : "default"}
+              className={currentPlan !== "free" ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0" : ""}
+            >
+              {currentPlan !== "free" && <Crown className="w-3 h-3 mr-1" />}
+              {planLabel}
+            </Badge>
+          </div>
           <p className="text-muted-foreground mt-1">
             Verwalte deine Lernwelten und erstelle neue Abenteuer
+            {currentPlan === "free" && (
+              <span className="ml-2 text-sm">
+                ({currentCount}/{maxLimit} Welten)
+              </span>
+            )}
           </p>
         </div>
 
