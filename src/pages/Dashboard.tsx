@@ -63,58 +63,66 @@ const Dashboard = () => {
   useEffect(() => {
     if (!user) return;
 
+    console.log('Setting up realtime subscription for user:', user.id);
+
     const channel = supabase
       .channel('world-generation-updates')
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
           table: 'learning_worlds',
           filter: `creator_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('Realtime update:', payload);
-          const updatedWorld = payload.new as LearningWorld;
+          console.log('Realtime event:', payload.eventType, payload);
           
-          setWorlds(prevWorlds => 
-            prevWorlds.map(w => 
-              w.id === updatedWorld.id ? { ...w, ...updatedWorld } : w
-            )
-          );
+          if (payload.eventType === 'INSERT') {
+            const newWorld = payload.new as LearningWorld;
+            setWorlds(prevWorlds => {
+              // Avoid duplicates
+              if (prevWorlds.some(w => w.id === newWorld.id)) {
+                return prevWorlds;
+              }
+              return [newWorld, ...prevWorlds];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedWorld = payload.new as LearningWorld;
+            
+            setWorlds(prevWorlds => 
+              prevWorlds.map(w => 
+                w.id === updatedWorld.id ? { ...w, ...updatedWorld } : w
+              )
+            );
 
-          // Show toast when generation completes
-          if (updatedWorld.generation_status === 'complete') {
-            toast({
-              title: "Lernwelt fertig! ✨",
-              description: `"${updatedWorld.title}" wurde erfolgreich erstellt.`,
-            });
-          } else if (updatedWorld.generation_status === 'error') {
-            toast({
-              title: "Generierung fehlgeschlagen",
-              description: updatedWorld.generation_error || "Ein Fehler ist aufgetreten.",
-              variant: "destructive",
-            });
+            // Show toast and refresh when generation completes
+            if (updatedWorld.generation_status === 'complete') {
+              toast({
+                title: "Lernwelt fertig! ✨",
+                description: `"${updatedWorld.title}" wurde erfolgreich erstellt.`,
+              });
+              // Refresh to get all sections
+              fetchWorlds();
+            } else if (updatedWorld.generation_status === 'error') {
+              toast({
+                title: "Generierung fehlgeschlagen",
+                description: updatedWorld.generation_error || "Ein Fehler ist aufgetreten.",
+                variant: "destructive",
+              });
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const deletedWorld = payload.old as LearningWorld;
+            setWorlds(prevWorlds => prevWorlds.filter(w => w.id !== deletedWorld.id));
           }
         }
       )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'learning_worlds',
-          filter: `creator_id=eq.${user.id}`,
-        },
-        (payload) => {
-          console.log('Realtime insert:', payload);
-          const newWorld = payload.new as LearningWorld;
-          setWorlds(prevWorlds => [newWorld, ...prevWorlds]);
-        }
-      )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
   }, [user, toast]);
