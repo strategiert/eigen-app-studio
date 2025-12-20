@@ -3,6 +3,45 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { ContactForm } from "@/components/contact/ContactForm";
 import { Heart, Sparkles, Users, GraduationCap } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+
+const faqItems = [
+  {
+    question: "Was ist Meoluna?",
+    answer:
+      "Meoluna ist eine KI-gestützte Lernplattform, die Schulprüfungen in interaktive Lernwelten verwandelt. Lehrer:innen können ihre Materialien hochladen, und unsere KI erstellt daraus spielerische Lernerlebnisse für Schüler:innen.",
+  },
+  {
+    question: "Ist Meoluna kostenlos?",
+    answer:
+      "Ja, wir bieten einen kostenlosen Plan mit grundlegenden Funktionen. Für erweiterte Features wie mehr Lernwelten und detaillierte Analysen gibt es unseren Pro-Plan.",
+  },
+  {
+    question: "Wie funktioniert die KI?",
+    answer:
+      "Unsere KI analysiert deine Lernmaterialien (Texte, PDFs, Arbeitsblätter) und erstellt daraus strukturierte Lernmodule mit Quiz-Fragen, Lückentexten und interaktiven Übungen – alles passend zum Thema und Schwierigkeitsgrad.",
+  },
+  {
+    question: "Sind meine Daten sicher?",
+    answer:
+      "Absolut. Wir speichern alle Daten DSGVO-konform in europäischen Rechenzentren. Schüler:innen können anonym lernen, und wir verkaufen niemals Nutzerdaten an Dritte.",
+  },
+  {
+    question: "Für welche Klassenstufen ist Meoluna geeignet?",
+    answer:
+      "Meoluna ist für Schüler:innen von 8-16 Jahren (3. Klasse bis 10. Klasse) optimiert. Die Lernwelten passen sich automatisch an das Alter und den Schwierigkeitsgrad an.",
+  },
+  {
+    question: "Kann ich Meoluna als Lehrer:in nutzen?",
+    answer:
+      "Ja! Als Lehrer:in kannst du dich kostenlos registrieren, zum Creator upgraden und sofort Lernwelten erstellen. Du kannst deine Welten mit Schüler:innen teilen oder öffentlich publizieren.",
+  },
+];
 
 const About = () => {
   return (
@@ -152,8 +191,36 @@ const About = () => {
           </motion.div>
         </section>
 
-        {/* Contact Form Section */}
+        {/* FAQ Section */}
         <section className="bg-muted/30 py-16">
+          <div className="container mx-auto px-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+              className="max-w-3xl mx-auto"
+            >
+              <h2 className="text-3xl font-bold text-foreground mb-8 text-center">
+                Häufig gestellte Fragen
+              </h2>
+              <Accordion type="single" collapsible className="w-full">
+                {faqItems.map((item, index) => (
+                  <AccordionItem key={index} value={`item-${index}`}>
+                    <AccordionTrigger className="text-left text-foreground hover:text-primary">
+                      {item.question}
+                    </AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground">
+                      {item.answer}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Contact Form Section */}
+        <section className="py-16">
           <div className="container mx-auto px-4">
             <ContactForm />
           </div>
