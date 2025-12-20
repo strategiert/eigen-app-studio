@@ -6,26 +6,39 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Map MIME types to format types
+const mimeTypeMap: Record<string, string> = {
+  'application/pdf': 'pdf',
+  'image/jpeg': 'image',
+  'image/jpg': 'image',
+  'image/png': 'image',
+  'image/webp': 'image',
+  'image/gif': 'image',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/msword': 'doc',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { filePath } = await req.json();
+    const { filePath, mimeType } = await req.json();
     
     if (!filePath) {
       throw new Error("No file path provided");
     }
 
-    console.log("Parsing PDF from path:", filePath);
+    console.log("Parsing document from path:", filePath, "MIME type:", mimeType);
 
     // Create Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Download the PDF file from storage
+    // Download the file from storage
     const { data: fileData, error: downloadError } = await supabase.storage
       .from("learning-materials")
       .download(filePath);
@@ -48,14 +61,52 @@ serve(async (req) => {
     }
     const base64 = btoa(binary);
 
-    // Use Lovable AI with vision capabilities to extract text from PDF
+    // Determine file format
+    const format = mimeTypeMap[mimeType] || 'unknown';
+    const fileName = filePath.split('/').pop() || "document";
+
+    // Use Lovable AI with vision capabilities to extract text
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Send PDF to AI for text extraction
+    // Build message content based on file type
+    let messageContent: Array<{ type: string; text?: string; image_url?: { url: string }; file?: { filename: string; file_data: string } }>;
+
+    if (format === 'image') {
+      // For images, use image_url format
+      messageContent = [
+        {
+          type: "text",
+          text: "Extrahiere und transkribiere den gesamten Text aus diesem Bild. Wenn es sich um handschriftliche Notizen handelt, transkribiere sie so genau wie möglich. Beschreibe auch relevante Diagramme oder Grafiken."
+        },
+        {
+          type: "image_url",
+          image_url: {
+            url: `data:${mimeType};base64,${base64}`
+          }
+        }
+      ];
+    } else {
+      // For PDFs, Word docs, etc., use file format
+      messageContent = [
+        {
+          type: "text",
+          text: "Extrahiere den gesamten Text aus diesem Dokument:"
+        },
+        {
+          type: "file",
+          file: {
+            filename: fileName,
+            file_data: `data:${mimeType};base64,${base64}`
+          }
+        }
+      ];
+    }
+
+    // Send to AI for text extraction
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -67,30 +118,20 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `Du bist ein Textextraktions-Assistent. Deine Aufgabe ist es, den gesamten Text aus dem PDF-Dokument zu extrahieren und als reinen Text zurückzugeben.
+            content: `Du bist ein Textextraktions-Assistent. Deine Aufgabe ist es, den gesamten Text aus dem Dokument zu extrahieren und als reinen Text zurückzugeben.
 
 Regeln:
 - Extrahiere ALLEN lesbaren Text aus dem Dokument
 - Behalte die Struktur (Absätze, Listen, Überschriften) bei
 - Ignoriere Seitenzahlen und Kopf-/Fußzeilen
 - Gib NUR den extrahierten Text zurück, keine zusätzlichen Kommentare
-- Wenn das Dokument Bilder enthält, beschreibe sie kurz in [Klammern]`
+- Wenn das Dokument Bilder enthält, beschreibe sie kurz in [Klammern]
+- Bei handschriftlichen Notizen: transkribiere so genau wie möglich
+- Bei Tabellen: strukturiere sie übersichtlich`
           },
           {
             role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Extrahiere den gesamten Text aus diesem PDF-Dokument:"
-              },
-              {
-                type: "file",
-                file: {
-                  filename: filePath.split('/').pop() || "document.pdf",
-                  file_data: `data:application/pdf;base64,${base64}`
-                }
-              }
-            ]
+            content: messageContent
           }
         ],
       }),
@@ -99,33 +140,30 @@ Regeln:
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI extraction error:", response.status, errorText);
-      throw new Error("Could not extract text from PDF");
+      throw new Error("Could not extract text from document");
     }
 
     const data = await response.json();
     const extractedText = data.choices?.[0]?.message?.content || "";
 
     if (!extractedText) {
-      throw new Error("No text could be extracted from the PDF");
+      throw new Error("No text could be extracted from the document");
     }
 
     console.log("Extracted text length:", extractedText.length);
 
-    // Clean up the uploaded file after processing (optional)
-    // await supabase.storage.from("learning-materials").remove([filePath]);
-
     return new Response(JSON.stringify({
       text: extractedText,
-      pageCount: 1, // We can't accurately count pages with this method
+      format: format,
       characterCount: extractedText.length
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
   } catch (error) {
-    console.error("Error in parse-pdf function:", error);
+    console.error("Error in parse-document function:", error);
     return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : "Failed to parse PDF" 
+      error: error instanceof Error ? error.message : "Failed to parse document" 
     }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

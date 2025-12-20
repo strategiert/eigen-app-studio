@@ -3,5 +3,5 @@ project_id = "orrqbsuzxrkoobctkvek"
 [functions.generate-world]
 verify_jwt = true
 
-[functions.parse-pdf]
+[functions.parse-document]
 verify_jwt = true
