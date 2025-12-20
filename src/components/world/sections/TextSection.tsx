@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { BookOpen, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import DOMPurify from 'dompurify';
 
 interface TextSectionProps {
   title: string;
@@ -50,7 +51,10 @@ export function TextSection({
             <div 
               className="text-muted-foreground leading-relaxed whitespace-pre-wrap"
               dangerouslySetInnerHTML={{ 
-                __html: content.replace(/\n/g, '<br/>') 
+                __html: DOMPurify.sanitize(content.replace(/\n/g, '<br/>'), {
+                  ALLOWED_TAGS: ['br', 'b', 'strong', 'i', 'em', 'u', 'p', 'span'],
+                  ALLOWED_ATTR: []
+                })
               }}
             />
           </div>
