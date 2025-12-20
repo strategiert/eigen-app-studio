@@ -1,7 +1,9 @@
 /**
  * Centralized logging utility
- * Makes it easy to replace with a proper logging service (e.g., Sentry, LogRocket)
+ * Integrated with Sentry for production error tracking
  */
+
+import { captureException, captureMessage, addBreadcrumb } from './sentry';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -34,7 +36,11 @@ class Logger {
 
   warn(message: string, context?: LogContext) {
     console.warn(this.formatMessage('warn', message, context));
-    // TODO: Send to monitoring service in production
+
+    // Send warning to Sentry in production
+    if (!this.isDevelopment) {
+      captureMessage(message, 'warning', context);
+    }
   }
 
   error(message: string, error?: Error | unknown, context?: LogContext) {
@@ -47,14 +53,14 @@ class Logger {
       if (stack) console.error('Stack:', stack);
     }
 
-    // TODO: Send to error tracking service (e.g., Sentry)
-    // Example:
-    // if (!this.isDevelopment) {
-    //   Sentry.captureException(error, {
-    //     tags: { component: context?.component, action: context?.action },
-    //     extra: context
-    //   });
-    // }
+    // Send to Sentry
+    if (error instanceof Error) {
+      captureException(error, { ...context, loggerMessage: message });
+    } else if (error) {
+      captureMessage(`${message}: ${errorMessage}`, 'error', context);
+    } else {
+      captureMessage(message, 'error', context);
+    }
   }
 
   /**
@@ -73,7 +79,9 @@ class Logger {
    */
   userAction(action: string, context?: LogContext) {
     this.info(`User action: ${action}`, { ...context, type: 'user_action' });
-    // TODO: Send to analytics service
+
+    // Add breadcrumb to Sentry
+    addBreadcrumb(`User action: ${action}`, 'user', context);
   }
 
   /**

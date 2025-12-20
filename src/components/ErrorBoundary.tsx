@@ -1,6 +1,7 @@
 import React, { Component, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { captureException } from '@/lib/sentry';
 
 interface Props {
   children: ReactNode;
@@ -41,8 +42,11 @@ export class ErrorBoundary extends Component<Props, State> {
       errorInfo
     });
 
-    // TODO: Send to error tracking service (e.g., Sentry)
-    // Example: Sentry.captureException(error, { extra: errorInfo });
+    // Send to Sentry
+    captureException(error, {
+      componentStack: errorInfo.componentStack,
+      errorBoundary: true
+    });
   }
 
   handleReset = () => {
