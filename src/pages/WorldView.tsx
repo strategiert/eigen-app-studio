@@ -8,6 +8,8 @@ import { WorldHeader } from '@/components/world/WorldHeader';
 import { SectionNavigation } from '@/components/world/SectionNavigation';
 import { ModuleRenderer } from '@/components/world/ModuleRenderer';
 import { CompletionCelebration, StarCollectAnimation } from '@/components/world/CompletionCelebration';
+import { FloatingStars } from '@/components/world/StarProgress';
+import { PageTransition } from '@/components/world/PageTransition';
 import { useWorldProgress } from '@/hooks/useWorldProgress';
 import { useAuth } from '@/hooks/useAuth';
 import { getSubjectTheme, type SubjectType, type MoonPhase } from '@/lib/subjectTheme';
@@ -191,11 +193,21 @@ export default function WorldView() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Lernwelt wird geladen...</p>
-        </div>
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <motion.div 
+          className="flex flex-col items-center gap-4"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          >
+            <Loader2 className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
+          </motion.div>
+          <p className="text-muted-foreground text-sm sm:text-base">Lernwelt wird geladen...</p>
+        </motion.div>
       </div>
     );
   }
@@ -203,20 +215,26 @@ export default function WorldView() {
   // Error state
   if (error || !world) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <PageTransition className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center max-w-md">
-          <Sparkles className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-foreground mb-2">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+          >
+            <Sparkles className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
+          </motion.div>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
             {error || 'Lernwelt nicht gefunden'}
           </h1>
-          <p className="text-muted-foreground mb-6">
+          <p className="text-muted-foreground text-sm sm:text-base mb-6">
             Die angeforderte Lernwelt existiert nicht oder du hast keinen Zugriff darauf.
           </p>
           <Button asChild>
             <a href="/dashboard">Zum Dashboard</a>
           </Button>
         </div>
-      </div>
+      </PageTransition>
     );
   }
 
@@ -248,13 +266,16 @@ export default function WorldView() {
 
   return (
     <div 
-      className="min-h-screen"
+      className="min-h-screen relative"
       style={{
         background: worldBackground,
         backgroundImage: worldPattern,
         backgroundAttachment: 'fixed'
       }}
     >
+      {/* Floating stars background */}
+      <FloatingStars count={6} />
+
       {/* Header */}
       <WorldHeader
         title={world.title}
@@ -266,8 +287,8 @@ export default function WorldView() {
         totalSections={modules.length}
       />
 
-      {/* Main content */}
-      <main className="container mx-auto px-4 py-6">
+      {/* Main content - Mobile optimized */}
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 relative z-10">
         {/* Module navigation */}
         <SectionNavigation
           sections={modules.map(m => ({
@@ -283,7 +304,7 @@ export default function WorldView() {
         />
 
         {/* Current module */}
-        <div className="mt-8">
+        <div className="mt-4 sm:mt-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentModule.id}
@@ -311,32 +332,44 @@ export default function WorldView() {
           </AnimatePresence>
         </div>
 
-        {/* Navigation buttons */}
-        <div className="flex justify-between items-center mt-8 pt-6 border-t border-border/50">
+        {/* Navigation buttons - Mobile optimized */}
+        <motion.div 
+          className="flex justify-between items-center mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-border/50"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
           <Button
             variant="outline"
             onClick={handlePrevious}
             disabled={currentModuleIndex === 0}
-            className="gap-2"
+            size="sm"
+            className="gap-1 sm:gap-2 h-9 sm:h-10 px-3 sm:px-4"
           >
             <ChevronLeft className="h-4 w-4" />
-            Zurück
+            <span className="hidden sm:inline">Zurück</span>
           </Button>
 
-          <span className="text-sm text-muted-foreground">
+          <motion.span 
+            className="text-xs sm:text-sm text-muted-foreground font-medium"
+            key={currentModuleIndex}
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+          >
             {currentModuleIndex + 1} / {modules.length}
-          </span>
+          </motion.span>
 
           <Button
             onClick={handleNext}
             disabled={currentModuleIndex === modules.length - 1}
-            className="gap-2"
+            size="sm"
+            className="gap-1 sm:gap-2 h-9 sm:h-10 px-3 sm:px-4"
             style={{ backgroundColor: subjectTheme?.color }}
           >
-            Weiter
+            <span className="hidden sm:inline">Weiter</span>
             <ChevronRight className="h-4 w-4" />
           </Button>
-        </div>
+        </motion.div>
       </main>
 
       {/* Celebration animations */}

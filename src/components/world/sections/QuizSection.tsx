@@ -144,15 +144,15 @@ export function QuizSection({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
+      className="space-y-4 sm:space-y-6"
     >
       {/* Progress bar */}
-      <div className="space-y-2">
-        <div className="flex justify-between text-sm text-muted-foreground">
-          <span>Frage {currentQuestionIndex + 1} von {questions.length}</span>
-          <span>{Math.round(progress)}%</span>
+      <div className="space-y-1.5 sm:space-y-2">
+        <div className="flex justify-between text-xs sm:text-sm text-muted-foreground">
+          <span>Frage {currentQuestionIndex + 1}/{questions.length}</span>
+          <span className="font-medium">{Math.round(progress)}%</span>
         </div>
-        <div className="h-2 bg-muted rounded-full overflow-hidden">
+        <div className="h-1.5 sm:h-2 bg-muted rounded-full overflow-hidden">
           <motion.div
             className="h-full rounded-full"
             style={{ backgroundColor: subjectColor }}

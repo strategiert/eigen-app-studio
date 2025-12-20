@@ -137,6 +137,52 @@
     --sidebar-border: 240 25% 18%;
     --sidebar-ring: 250 84% 65%;
   }
+
+  /* Rest Mode - Extra calm, reduced contrast for relaxed learning */
+  .rest-mode {
+    --background: 240 40% 4%;
+    --foreground: 240 10% 80%;
+
+    --card: 240 35% 8%;
+    --card-foreground: 240 10% 80%;
+
+    --popover: 240 35% 8%;
+    --popover-foreground: 240 10% 80%;
+
+    --primary: 250 60% 55%;
+    --primary-foreground: 240 40% 4%;
+
+    --secondary: 240 25% 12%;
+    --secondary-foreground: 240 10% 70%;
+
+    --muted: 240 20% 14%;
+    --muted-foreground: 240 10% 50%;
+
+    --accent: 280 50% 50%;
+    --accent-foreground: 240 10% 90%;
+
+    --destructive: 0 50% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 20% 14%;
+    --input: 240 20% 14%;
+    --ring: 250 60% 55%;
+
+    /* Warmer, softer moon colors */
+    --moon: 45 80% 65%;
+    --moon-glow: 45 60% 45%;
+    --stars: 45 70% 70%;
+    --night-sky: 240 40% 5%;
+
+    /* Reduced animation speeds */
+    --transition-smooth: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.7s cubic-bezier(0.34, 1.2, 0.64, 1);
+  }
+
+  .rest-mode * {
+    /* Slightly reduce all animations in rest mode */
+    animation-duration: 1.5 !important;
+  }
 }
 
 @layer base {
