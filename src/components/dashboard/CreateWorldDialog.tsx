@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Loader2, BookOpen, FileText, Wand2 } from "lucide-react";
+import { Sparkles, Loader2, BookOpen, FileText, Wand2, Upload, File, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -50,9 +51,13 @@ const subjects: { value: SubjectType; label: string; emoji: string }[] = [
 export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: CreateWorldDialogProps) => {
   const [step, setStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isUploadingPdf, setIsUploadingPdf] = useState(false);
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState<SubjectType>("allgemein");
   const [sourceContent, setSourceContent] = useState("");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [contentMode, setContentMode] = useState<"text" | "pdf">("text");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const handleReset = () => {
@@ -60,12 +65,90 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
     setTitle("");
     setSubject("allgemein");
     setSourceContent("");
+    setUploadedFile(null);
+    setContentMode("text");
     setIsGenerating(false);
+    setIsUploadingPdf(false);
   };
 
   const handleClose = () => {
     onOpenChange(false);
     setTimeout(handleReset, 300);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      toast({
+        title: "Ungültiger Dateityp",
+        description: "Bitte lade eine PDF-Datei hoch.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 50 * 1024 * 1024) {
+      toast({
+        title: "Datei zu groß",
+        description: "Die Datei darf maximal 50 MB groß sein.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadedFile(file);
+    setIsUploadingPdf(true);
+
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Nicht angemeldet");
+
+      // Upload to Supabase Storage
+      const filePath = `${user.id}/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from("learning-materials")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Parse PDF using edge function
+      const { data: parseData, error: parseError } = await supabase.functions.invoke("parse-pdf", {
+        body: { filePath },
+      });
+
+      if (parseError) throw parseError;
+
+      if (parseData?.text) {
+        setSourceContent(parseData.text);
+        toast({
+          title: "PDF erfolgreich verarbeitet",
+          description: `${parseData.pageCount || 0} Seiten wurden extrahiert.`,
+        });
+      } else {
+        throw new Error("Kein Text konnte extrahiert werden");
+      }
+    } catch (error) {
+      console.error("Error processing PDF:", error);
+      toast({
+        title: "Fehler beim Verarbeiten",
+        description: error instanceof Error ? error.message : "PDF konnte nicht verarbeitet werden.",
+        variant: "destructive",
+      });
+      setUploadedFile(null);
+    } finally {
+      setIsUploadingPdf(false);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setUploadedFile(null);
+    setSourceContent("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleGenerate = async () => {
@@ -259,21 +342,86 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
               className="space-y-4"
             >
               <div className="space-y-2">
-                <Label htmlFor="content" className="flex items-center gap-2">
+                <Label className="flex items-center gap-2">
                   <FileText className="w-4 h-4" />
                   Lerninhalt
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Füge hier den Text ein, aus dem die KI eine Lernwelt erstellen soll.
+                  Füge Text ein oder lade eine PDF-Datei hoch.
                 </p>
-                <Textarea
-                  id="content"
-                  placeholder="Kopiere hier den Lernstoff hinein... Texte aus Büchern, Arbeitsblättern, Wikipedia, etc."
-                  value={sourceContent}
-                  onChange={(e) => setSourceContent(e.target.value)}
-                  className="min-h-[200px] bg-background/50"
-                />
               </div>
+
+              <Tabs value={contentMode} onValueChange={(v) => setContentMode(v as "text" | "pdf")} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="text">Text eingeben</TabsTrigger>
+                  <TabsTrigger value="pdf">PDF hochladen</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="text" className="mt-4">
+                  <Textarea
+                    placeholder="Kopiere hier den Lernstoff hinein... Texte aus Büchern, Arbeitsblättern, Wikipedia, etc."
+                    value={sourceContent}
+                    onChange={(e) => setSourceContent(e.target.value)}
+                    className="min-h-[200px] bg-background/50"
+                  />
+                </TabsContent>
+
+                <TabsContent value="pdf" className="mt-4">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+
+                  {!uploadedFile ? (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-border/50 rounded-xl p-8 text-center cursor-pointer hover:border-moon/50 hover:bg-moon/5 transition-all"
+                    >
+                      <Upload className="w-10 h-10 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-foreground font-medium mb-1">PDF-Datei auswählen</p>
+                      <p className="text-sm text-muted-foreground">Maximal 50 MB</p>
+                    </div>
+                  ) : (
+                    <div className="border border-border/50 rounded-xl p-4 bg-background/50">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-moon/10 rounded-lg">
+                          <File className="w-6 h-6 text-moon" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground truncate">{uploadedFile.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {isUploadingPdf ? "Wird verarbeitet..." : "Erfolgreich verarbeitet"}
+                          </p>
+                        </div>
+                        {!isUploadingPdf && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={handleRemoveFile}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        )}
+                        {isUploadingPdf && (
+                          <Loader2 className="w-5 h-5 animate-spin text-moon" />
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {sourceContent && contentMode === "pdf" && (
+                    <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-medium text-foreground">{sourceContent.length.toLocaleString()}</span> Zeichen extrahiert
+                      </p>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
 
               <div className="flex gap-2">
                 <Button
@@ -285,7 +433,7 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
                 </Button>
                 <Button
                   onClick={handleGenerate}
-                  disabled={isGenerating || !sourceContent.trim()}
+                  disabled={isGenerating || isUploadingPdf || !sourceContent.trim()}
                   className="flex-1 bg-gradient-to-r from-moon to-aurora text-night-sky hover:opacity-90"
                 >
                   {isGenerating ? (
