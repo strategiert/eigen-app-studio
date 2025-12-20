@@ -47,11 +47,7 @@ export const Navbar = () => {
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5 }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled 
-          ? "bg-background/80 backdrop-blur-lg border-b border-border/50 shadow-sm" 
-          : "bg-transparent"
-      }`}
+      className="fixed top-0 left-0 right-0 z-50 bg-transparent"
     >
       <div className="container px-4">
         <nav className="flex items-center justify-between h-16 md:h-20">
@@ -59,7 +55,7 @@ export const Navbar = () => {
           <Link to="/" className="flex items-center gap-2">
             <MoonLogo size="sm" animate={false} />
             <span className="text-xl font-bold">
-              <span className={isScrolled ? "text-foreground" : "text-white"}>Meo</span>
+              <span className="text-white">Meo</span>
               <span className="text-moon">luna</span>
             </span>
           </Link>
@@ -68,17 +64,13 @@ export const Navbar = () => {
           <div className="hidden md:flex items-center gap-6">
             <Link 
               to="/explore" 
-              className={`text-sm font-medium transition-colors ${
-                isScrolled ? "text-muted-foreground hover:text-foreground" : "text-white/70 hover:text-white"
-              }`}
+              className="text-sm font-medium transition-colors text-white/70 hover:text-white"
             >
               Lernwelten
             </Link>
             <Link 
               to="/about" 
-              className={`text-sm font-medium transition-colors ${
-                isScrolled ? "text-muted-foreground hover:text-foreground" : "text-white/70 hover:text-white"
-              }`}
+              className="text-sm font-medium transition-colors text-white/70 hover:text-white"
             >
               Über uns
             </Link>
@@ -92,7 +84,7 @@ export const Navbar = () => {
                     </AvatarFallback>
                   </Avatar>
                 </Link>
-                <Button asChild variant={isScrolled ? "outline" : "ghost"} size="sm" className={!isScrolled ? "text-white border-white/20" : ""}>
+                <Button asChild variant="ghost" size="sm" className="text-white border-white/20">
                   <Link to="/dashboard">
                     <LayoutDashboard className="w-4 h-4 mr-2" />
                     Dashboard
@@ -102,7 +94,7 @@ export const Navbar = () => {
                   onClick={handleLogout} 
                   variant="ghost" 
                   size="sm"
-                  className={!isScrolled ? "text-white/70 hover:text-white" : ""}
+                  className="text-white/70 hover:text-white"
                 >
                   <LogOut className="w-4 h-4" />
                 </Button>
@@ -123,9 +115,9 @@ export const Navbar = () => {
             className="md:hidden p-2"
           >
             {isMobileMenuOpen ? (
-              <X className={`w-6 h-6 ${isScrolled ? "text-foreground" : "text-white"}`} />
+              <X className="w-6 h-6 text-white" />
             ) : (
-              <Menu className={`w-6 h-6 ${isScrolled ? "text-foreground" : "text-white"}`} />
+              <Menu className="w-6 h-6 text-white" />
             )}
           </button>
         </nav>
