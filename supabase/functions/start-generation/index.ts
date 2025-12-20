@@ -48,7 +48,7 @@ async function updateStatus(
 
 // Call AI API
 async function callAI(systemPrompt: string, userPrompt: string, model = "google/gemini-2.5-flash") {
-  const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${lovableApiKey}`,
@@ -253,33 +253,41 @@ Create 4-6 sections mixing explanation and interactive exercises.`;
               console.log("Generating image for section:", section.id);
               
               // Call image generation AI
-              const imageResponse = await fetch("https://api.lovable.dev/v1/images/generations", {
+              const imageResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
                 method: "POST",
                 headers: {
                   "Authorization": `Bearer ${lovableApiKey}`,
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  prompt: `Educational illustration for children: ${section.image_prompt}. Style: ${generatedContent.visualTheme?.styleHint || 'friendly, colorful, educational'}. Clean, simple, age-appropriate.`,
-                  size: "1024x1024",
+                  model: "google/gemini-2.5-flash-image-preview",
+                  messages: [
+                    {
+                      role: "user",
+                      content: `Generate an educational illustration: ${section.image_prompt}. Style: ${generatedContent.visualTheme?.styleHint || 'friendly, colorful, educational'}. Clean, simple, age-appropriate for children.`
+                    }
+                  ],
+                  modalities: ["image", "text"]
                 }),
               });
 
               if (imageResponse.ok) {
                 const imageData = await imageResponse.json();
-                const imageUrl = imageData.data?.[0]?.url;
+                const base64Image = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
                 
-                if (imageUrl) {
-                  // Fetch and upload to storage
-                  const imgResponse = await fetch(imageUrl);
-                  const imgBlob = await imgResponse.blob();
-                  const imgArrayBuffer = await imgBlob.arrayBuffer();
-                  const imgUint8 = new Uint8Array(imgArrayBuffer);
+                if (base64Image && base64Image.startsWith('data:image')) {
+                  // Extract base64 data from data URL
+                  const base64Data = base64Image.split(',')[1];
+                  const binaryString = atob(base64Data);
+                  const bytes = new Uint8Array(binaryString.length);
+                  for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                  }
                   
                   const imagePath = `worlds/${worldId}/${section.id}.png`;
                   const { error: uploadError } = await supabase.storage
                     .from('learning-materials')
-                    .upload(imagePath, imgUint8, {
+                    .upload(imagePath, bytes, {
                       contentType: 'image/png',
                       upsert: true,
                     });
@@ -295,8 +303,12 @@ Create 4-6 sections mixing explanation and interactive exercises.`;
                       .eq('id', section.id as string);
                       
                     console.log("Image saved for section:", section.id);
+                  } else {
+                    console.error("Upload error:", uploadError);
                   }
                 }
+              } else {
+                console.error("Image generation failed:", await imageResponse.text());
               }
             } catch (imgError) {
               console.error("Error generating image for section:", section.id, imgError);
