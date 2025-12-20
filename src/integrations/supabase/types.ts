@@ -86,6 +86,7 @@ export type Database = {
           updated_at: string
           view_count: number | null
           visual_theme: Json | null
+          world_design: Json | null
         }
         Insert: {
           created_at?: string
@@ -108,6 +109,7 @@ export type Database = {
           updated_at?: string
           view_count?: number | null
           visual_theme?: Json | null
+          world_design?: Json | null
         }
         Update: {
           created_at?: string
@@ -130,6 +132,7 @@ export type Database = {
           updated_at?: string
           view_count?: number | null
           visual_theme?: Json | null
+          world_design?: Json | null
         }
         Relationships: [
           {

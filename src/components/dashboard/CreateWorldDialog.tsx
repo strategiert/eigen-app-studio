@@ -251,7 +251,7 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
       const detectedSubject = contentAnalysis?.theme?.mainTopic?.toLowerCase() || subject;
       const finalSubject = subject === 'allgemein' ? detectSubjectFromAnalysis(contentAnalysis) : subject;
 
-      // Create the learning world with the unique visual theme
+      // Create the learning world with the unique visual theme AND full world_design
       const { data: world, error: worldError } = await supabase
         .from("learning_worlds")
         .insert({
@@ -263,6 +263,7 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
           source_content: sourceContent,
           generated_code: JSON.stringify({ contentAnalysis, worldDesign, aiData }),
           visual_theme: aiData.visualTheme || {},
+          world_design: worldDesign || {}, // Store complete AI-generated design
           detected_subject: finalSubject,
           status: "draft",
           moon_phase: "neumond",
