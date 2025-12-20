@@ -9,6 +9,7 @@ import { StarField } from "@/components/landing/StarField";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { WorldCard } from "@/components/dashboard/WorldCard";
 import { CreateWorldDialog } from "@/components/dashboard/CreateWorldDialog";
+import { UpgradeToCreatorCard } from "@/components/dashboard/UpgradeToCreatorCard";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import {
   AlertDialog,
@@ -158,6 +159,8 @@ const Dashboard = () => {
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-moon" />
           </div>
+        ) : role !== "creator" && role !== "admin" ? (
+          <UpgradeToCreatorCard onUpgraded={() => window.location.reload()} />
         ) : filteredWorlds.length === 0 ? (
           worlds.length === 0 ? (
             <EmptyState onCreateClick={() => setCreateDialogOpen(true)} />

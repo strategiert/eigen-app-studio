@@ -255,9 +255,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      upgrade_to_creator: { Args: never; Returns: undefined }
     }
     Enums: {
-      app_role: "admin" | "teacher" | "student"
+      app_role: "admin" | "creator" | "student"
       moon_phase:
         | "neumond"
         | "zunehmend"
@@ -406,7 +407,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "teacher", "student"],
+      app_role: ["admin", "creator", "student"],
       moon_phase: ["neumond", "zunehmend", "halbmond", "vollmond", "abnehmend"],
       subject_type: [
         "mathematik",
