@@ -1,11 +1,28 @@
 import { motion } from 'framer-motion';
-import { Check, Lock, ChevronRight } from 'lucide-react';
+import { Check, Lock, ChevronRight, Search, BookOpen, Pencil, Brain, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+const MODULE_TYPE_ICONS = {
+  discovery: Search,
+  knowledge: BookOpen,
+  practice: Pencil,
+  reflection: Brain,
+  challenge: Zap
+} as const;
+
+const MODULE_TYPE_COLORS = {
+  discovery: 'hsl(45, 93%, 47%)',
+  knowledge: 'hsl(210, 79%, 46%)',
+  practice: 'hsl(142, 71%, 45%)',
+  reflection: 'hsl(280, 65%, 60%)',
+  challenge: 'hsl(16, 90%, 50%)'
+} as const;
 
 interface Section {
   id: string;
   title: string;
   componentType: string;
+  moduleType?: string;
 }
 
 interface SectionNavigationProps {
@@ -31,6 +48,10 @@ export function SectionNavigation({
           const isCurrent = index === currentIndex;
           const isPast = index < currentIndex;
           const isAccessible = index <= currentIndex || isCompleted || sections.slice(0, index).every(s => completedSections.has(s.id));
+          
+          const moduleType = (section.moduleType || 'knowledge') as keyof typeof MODULE_TYPE_ICONS;
+          const ModuleIcon = MODULE_TYPE_ICONS[moduleType] || BookOpen;
+          const moduleColor = MODULE_TYPE_COLORS[moduleType] || subjectColor;
 
           return (
             <motion.button
@@ -45,23 +66,18 @@ export function SectionNavigation({
                 !isCurrent && !isCompleted && isAccessible && "border-border/50 bg-background/50 text-muted-foreground hover:border-border hover:bg-background/80",
                 !isAccessible && "border-border/30 bg-background/30 text-muted-foreground/50 cursor-not-allowed"
               )}
-              style={isCurrent ? { borderColor: subjectColor, backgroundColor: `${subjectColor}15`, color: subjectColor } : undefined}
+              style={isCurrent ? { borderColor: moduleColor, backgroundColor: `${moduleColor}15`, color: moduleColor } : undefined}
               whileHover={isAccessible ? { scale: 1.02 } : undefined}
               whileTap={isAccessible ? { scale: 0.98 } : undefined}
             >
-              {/* Status icon */}
+              {/* Module type icon */}
               <span className="w-5 h-5 flex items-center justify-center">
                 {isCompleted ? (
                   <Check className="h-4 w-4" />
                 ) : !isAccessible ? (
                   <Lock className="h-3 w-3" />
                 ) : (
-                  <span 
-                    className={cn(
-                      "w-2 h-2 rounded-full",
-                      isCurrent ? "bg-current" : "bg-muted-foreground/50"
-                    )}
-                  />
+                  <ModuleIcon className="h-4 w-4" style={isCurrent ? { color: moduleColor } : undefined} />
                 )}
               </span>
 
