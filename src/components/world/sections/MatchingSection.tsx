@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, XCircle, RefreshCw, Star, Shuffle } from 'lucide-react';
+import { useState, useCallback, useRef } from 'react';
+import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion';
+import { CheckCircle2, XCircle, RefreshCw, Star, Shuffle, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -18,6 +18,64 @@ interface MatchingSectionProps {
   isCompleted: boolean;
 }
 
+interface DraggableItemProps {
+  item: string;
+  index: number;
+  subjectColor: string;
+  isMatched: boolean;
+  showResults: boolean;
+  isCorrect?: boolean;
+}
+
+function DraggableItem({ item, subjectColor, isMatched, showResults, isCorrect }: DraggableItemProps) {
+  const controls = useDragControls();
+  
+  return (
+    <Reorder.Item
+      value={item}
+      dragListener={false}
+      dragControls={controls}
+      className={cn(
+        "w-full p-4 rounded-xl transition-all border-2 cursor-grab active:cursor-grabbing",
+        "flex items-center gap-3 bg-background/50",
+        !showResults && "border-border/50 hover:border-primary/50 hover:bg-primary/5",
+        showResults && isCorrect && "border-green-500 bg-green-500/10",
+        showResults && !isCorrect && "border-red-500 bg-red-500/10"
+      )}
+      whileDrag={{ 
+        scale: 1.02, 
+        boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
+        zIndex: 50
+      }}
+    >
+      <div 
+        className="touch-none cursor-grab active:cursor-grabbing p-1 rounded hover:bg-muted/50"
+        onPointerDown={(e) => {
+          if (!showResults) {
+            controls.start(e);
+          }
+        }}
+      >
+        <GripVertical className="h-5 w-5 text-muted-foreground" />
+      </div>
+      <span className="text-foreground flex-1">{item}</span>
+      {isMatched && !showResults && (
+        <div 
+          className="w-3 h-3 rounded-full shrink-0"
+          style={{ backgroundColor: subjectColor }}
+        />
+      )}
+      {showResults && (
+        isCorrect ? (
+          <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+        ) : (
+          <XCircle className="h-5 w-5 text-red-500 shrink-0" />
+        )
+      )}
+    </Reorder.Item>
+  );
+}
+
 export function MatchingSection({
   title,
   pairs,
@@ -25,74 +83,36 @@ export function MatchingSection({
   onComplete,
   isCompleted
 }: MatchingSectionProps) {
-  const [shuffledRight, setShuffledRight] = useState(() => 
+  const [orderedRight, setOrderedRight] = useState(() => 
     [...pairs].sort(() => Math.random() - 0.5).map(p => p.right)
   );
-  const [selectedLeft, setSelectedLeft] = useState<number | null>(null);
-  const [matches, setMatches] = useState<Record<number, number>>({});
   const [showResults, setShowResults] = useState(false);
-  const [results, setResults] = useState<Record<number, boolean>>({});
+  const [results, setResults] = useState<boolean[]>([]);
 
-  const shuffleRight = useCallback(() => {
-    setShuffledRight(prev => [...prev].sort(() => Math.random() - 0.5));
-    setMatches({});
-    setSelectedLeft(null);
+  const shuffleItems = useCallback(() => {
+    setOrderedRight(prev => [...prev].sort(() => Math.random() - 0.5));
     setShowResults(false);
-    setResults({});
+    setResults([]);
   }, []);
 
-  const handleLeftClick = (index: number) => {
-    if (showResults) return;
-    setSelectedLeft(index === selectedLeft ? null : index);
-  };
-
-  const handleRightClick = (index: number) => {
-    if (showResults || selectedLeft === null) return;
-    
-    // Check if this right item is already matched
-    const existingMatch = Object.entries(matches).find(([_, rightIdx]) => rightIdx === index);
-    if (existingMatch) {
-      // Remove the existing match
-      const newMatches = { ...matches };
-      delete newMatches[Number(existingMatch[0])];
-      setMatches(newMatches);
-    }
-
-    // Create new match
-    setMatches(prev => ({ ...prev, [selectedLeft]: index }));
-    setSelectedLeft(null);
-  };
-
   const handleCheck = () => {
-    const newResults: Record<number, boolean> = {};
-    
-    pairs.forEach((pair, leftIndex) => {
-      const matchedRightIndex = matches[leftIndex];
-      if (matchedRightIndex !== undefined) {
-        const matchedRight = shuffledRight[matchedRightIndex];
-        newResults[leftIndex] = matchedRight === pair.right;
-      } else {
-        newResults[leftIndex] = false;
-      }
+    // Check each position: is orderedRight[i] the correct match for pairs[i]?
+    const newResults = pairs.map((pair, index) => {
+      return orderedRight[index] === pair.right;
     });
 
     setResults(newResults);
     setShowResults(true);
     
-    const correctCount = Object.values(newResults).filter(Boolean).length;
+    const correctCount = newResults.filter(Boolean).length;
     onComplete(correctCount, pairs.length);
   };
 
   const handleRetry = () => {
-    shuffleRight();
+    shuffleItems();
   };
 
-  const getMatchedRightIndex = (leftIndex: number) => matches[leftIndex];
-  const isRightMatched = (rightIndex: number) => Object.values(matches).includes(rightIndex);
-  const getLeftIndexForRight = (rightIndex: number) => 
-    Object.entries(matches).find(([_, rIdx]) => rIdx === rightIndex)?.[0];
-
-  const score = Object.values(results).filter(Boolean).length;
+  const score = results.filter(Boolean).length;
   const percentage = pairs.length > 0 ? Math.round((score / pairs.length) * 100) : 0;
   const stars = percentage >= 90 ? 3 : percentage >= 70 ? 2 : percentage >= 50 ? 1 : 0;
 
@@ -116,7 +136,7 @@ export function MatchingSection({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={shuffleRight}
+                onClick={shuffleItems}
                 className="gap-2"
               >
                 <Shuffle className="h-4 w-4" />
@@ -125,96 +145,72 @@ export function MatchingSection({
             )}
           </div>
 
+          <p className="text-sm text-muted-foreground mb-6">
+            Ziehe die rechten Begriffe in die richtige Reihenfolge, sodass sie zu den linken Begriffen passen.
+          </p>
+
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Left column */}
+            {/* Left column - fixed */}
             <div className="space-y-3">
               <p className="text-sm font-medium text-muted-foreground mb-4">
                 Begriff
               </p>
               {pairs.map((pair, index) => {
-                const matchedRightIndex = getMatchedRightIndex(index);
-                const hasMatch = matchedRightIndex !== undefined;
-                const isSelected = selectedLeft === index;
                 const isCorrect = showResults && results[index];
                 const isIncorrect = showResults && !results[index];
 
                 return (
-                  <motion.button
-                    key={index}
-                    onClick={() => handleLeftClick(index)}
-                    disabled={showResults}
+                  <motion.div
+                    key={pair.left}
                     className={cn(
-                      "w-full p-4 rounded-xl text-left transition-all border-2",
-                      "flex items-center justify-between gap-2",
-                      !showResults && !isSelected && !hasMatch && "border-border/50 bg-background/50 hover:border-border",
-                      !showResults && isSelected && "border-primary bg-primary/10",
-                      !showResults && hasMatch && !isSelected && "border-muted bg-muted/50",
+                      "w-full p-4 rounded-xl border-2 flex items-center gap-3",
+                      !showResults && "border-border/50 bg-background/50",
                       isCorrect && "border-green-500 bg-green-500/10",
                       isIncorrect && "border-red-500 bg-red-500/10"
                     )}
-                    whileHover={!showResults ? { scale: 1.01 } : undefined}
-                    whileTap={!showResults ? { scale: 0.99 } : undefined}
                   >
+                    <div 
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
+                      style={{ backgroundColor: subjectColor }}
+                    >
+                      {index + 1}
+                    </div>
                     <span className="text-foreground font-medium">{pair.left}</span>
                     {showResults && (
                       isCorrect ? (
-                        <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+                        <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 ml-auto" />
                       ) : (
-                        <XCircle className="h-5 w-5 text-red-500 shrink-0" />
+                        <XCircle className="h-5 w-5 text-red-500 shrink-0 ml-auto" />
                       )
                     )}
-                    {hasMatch && !showResults && (
-                      <div 
-                        className="w-3 h-3 rounded-full shrink-0"
-                        style={{ backgroundColor: subjectColor }}
-                      />
-                    )}
-                  </motion.button>
+                  </motion.div>
                 );
               })}
             </div>
 
-            {/* Right column */}
+            {/* Right column - draggable */}
             <div className="space-y-3">
               <p className="text-sm font-medium text-muted-foreground mb-4">
-                Zuordnung
+                Zuordnung (Drag & Drop)
               </p>
-              <AnimatePresence mode="popLayout">
-                {shuffledRight.map((right, index) => {
-                  const matched = isRightMatched(index);
-                  const leftIndex = getLeftIndexForRight(index);
-                  const isCorrect = showResults && leftIndex !== undefined && results[Number(leftIndex)];
-                  const isIncorrect = showResults && leftIndex !== undefined && !results[Number(leftIndex)];
-
-                  return (
-                    <motion.button
-                      key={right}
-                      layout
-                      onClick={() => handleRightClick(index)}
-                      disabled={showResults}
-                      className={cn(
-                        "w-full p-4 rounded-xl text-left transition-all border-2",
-                        "flex items-center justify-between gap-2",
-                        !showResults && !matched && "border-border/50 bg-background/50 hover:border-border",
-                        !showResults && matched && "border-muted bg-muted/50",
-                        !showResults && selectedLeft !== null && !matched && "hover:border-primary hover:bg-primary/5",
-                        isCorrect && "border-green-500 bg-green-500/10",
-                        isIncorrect && "border-red-500 bg-red-500/10"
-                      )}
-                      whileHover={!showResults && selectedLeft !== null ? { scale: 1.01 } : undefined}
-                      whileTap={!showResults && selectedLeft !== null ? { scale: 0.99 } : undefined}
-                    >
-                      <span className="text-foreground">{right}</span>
-                      {matched && !showResults && (
-                        <div 
-                          className="w-3 h-3 rounded-full shrink-0"
-                          style={{ backgroundColor: subjectColor }}
-                        />
-                      )}
-                    </motion.button>
-                  );
-                })}
-              </AnimatePresence>
+              <Reorder.Group 
+                axis="y" 
+                values={orderedRight} 
+                onReorder={showResults ? () => {} : setOrderedRight}
+                className="space-y-3"
+              >
+                {orderedRight.map((item, index) => (
+                  <DraggableItem
+                    key={item}
+                    item={item}
+                    index={index}
+                    subjectColor={subjectColor}
+                    isMatched={true}
+                    showResults={showResults}
+                    isCorrect={showResults ? results[index] : undefined}
+                  />
+                ))}
+              </Reorder.Group>
             </div>
           </div>
 
@@ -231,7 +227,7 @@ export function MatchingSection({
               <div className="space-y-1">
                 {pairs.map((pair, index) => (
                   <p key={index} className="text-sm text-muted-foreground">
-                    {pair.left} → {pair.right}
+                    <span className="font-medium">{index + 1}.</span> {pair.left} → {pair.right}
                   </p>
                 ))}
               </div>
@@ -292,7 +288,6 @@ export function MatchingSection({
         <div className="flex justify-end">
           <Button
             onClick={handleCheck}
-            disabled={Object.keys(matches).length !== pairs.length}
             style={{ backgroundColor: subjectColor }}
           >
             Überprüfen
