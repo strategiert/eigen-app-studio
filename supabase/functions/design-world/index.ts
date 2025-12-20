@@ -1,15 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Authentication helper
+// Authentication helper using JWT token directly
 async function validateAuth(req: Request): Promise<{ user: any; error: Response | null }> {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
+    console.error('No authorization header provided');
     return {
       user: null,
       error: new Response(JSON.stringify({ error: 'Missing authorization header' }), {
@@ -20,20 +21,20 @@ async function validateAuth(req: Request): Promise<{ user: any; error: Response 
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: { Authorization: authHeader },
-    },
-  });
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  // Use service role key to validate the JWT
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  
+  // Extract JWT from Bearer token
+  const token = authHeader.replace('Bearer ', '');
+  
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
   if (authError || !user) {
-    console.error('Auth error:', authError);
+    console.error('Auth error:', authError?.message || 'No user found');
     return {
       user: null,
-      error: new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      error: new Response(JSON.stringify({ error: 'Unauthorized', details: authError?.message }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
