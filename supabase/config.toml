@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.parse-document]
 verify_jwt = true
+
+[functions.elevenlabs-scribe-token]
+verify_jwt = true
