@@ -27,7 +27,7 @@ import { VoiceRecorder } from "./VoiceRecorder";
 import { GenerationProgress } from "./GenerationProgress";
 
 type SubjectType = Database["public"]["Enums"]["subject_type"];
-type GenerationStage = "uploading" | "extracting" | "analyzing" | "generating" | "images" | "finalizing" | "complete";
+type GenerationStage = "uploading" | "extracting" | "analyzing" | "designing" | "generating" | "images" | "finalizing" | "complete";
 
 interface CreateWorldDialogProps {
   open: boolean;
@@ -203,39 +203,67 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
     setGenerationStage("analyzing");
 
     try {
-      // Simulate stage progression
-      setTimeout(() => setGenerationStage("generating"), 2000);
-      setTimeout(() => setGenerationStage("finalizing"), 5000);
-
-      // Call the AI generation function
-      const { data: aiData, error: aiError } = await supabase.functions.invoke("generate-world", {
-        body: { title, subject, sourceContent },
+      // PHASE 1: Analyze Content
+      console.log("Phase 1: Analyzing content...");
+      const { data: contentAnalysis, error: analysisError } = await supabase.functions.invoke("analyze-content", {
+        body: { title, sourceContent },
       });
 
-      if (aiError) {
-        throw new Error(aiError.message || "KI-Generierung fehlgeschlagen");
+      if (analysisError) {
+        throw new Error(analysisError.message || "Content-Analyse fehlgeschlagen");
       }
+
+      console.log("Content analysis complete:", contentAnalysis?.theme?.mainTopic);
+
+      // PHASE 2: Design World
+      setGenerationStage("designing");
+      console.log("Phase 2: Designing world...");
+      const { data: worldDesign, error: designError } = await supabase.functions.invoke("design-world", {
+        body: { title, contentAnalysis },
+      });
+
+      if (designError) {
+        throw new Error(designError.message || "World-Design fehlgeschlagen");
+      }
+
+      console.log("World design complete:", worldDesign?.worldConcept?.name);
+
+      // PHASE 3: Generate Content
+      setGenerationStage("generating");
+      console.log("Phase 3: Generating content...");
+      const { data: aiData, error: contentError } = await supabase.functions.invoke("generate-content", {
+        body: { title, sourceContent, worldDesign, contentAnalysis },
+      });
+
+      if (contentError) {
+        throw new Error(contentError.message || "Content-Generierung fehlgeschlagen");
+      }
+
+      console.log("Content generation complete with", aiData?.sections?.length, "sections");
+
+      setGenerationStage("finalizing");
 
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Nicht angemeldet");
 
-      // Use detected subject from AI if available
-      const finalSubject = aiData.detectedSubject || subject;
+      // Detect subject from content analysis
+      const detectedSubject = contentAnalysis?.theme?.mainTopic?.toLowerCase() || subject;
+      const finalSubject = subject === 'allgemein' ? detectSubjectFromAnalysis(contentAnalysis) : subject;
 
-      // Create the learning world with visual theme
+      // Create the learning world with the unique visual theme
       const { data: world, error: worldError } = await supabase
         .from("learning_worlds")
         .insert({
           title,
           subject: finalSubject,
           creator_id: user.id,
-          poetic_name: aiData.poeticName || null,
-          description: aiData.description || null,
+          poetic_name: aiData.poeticName || worldDesign?.worldConcept?.name || null,
+          description: aiData.description || worldDesign?.worldConcept?.tagline || null,
           source_content: sourceContent,
-          generated_code: JSON.stringify(aiData),
+          generated_code: JSON.stringify({ contentAnalysis, worldDesign, aiData }),
           visual_theme: aiData.visualTheme || {},
-          detected_subject: aiData.detectedSubject || null,
+          detected_subject: finalSubject,
           status: "draft",
           moon_phase: "neumond",
         })
@@ -289,11 +317,11 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
                     sectionId: section.id,
                     worldId: world.id,
                     subject: finalSubject,
+                    styleHint: aiData.visualTheme?.styleHint || '',
                   },
                 });
               } catch (imgError) {
                 console.error("Error generating image for section:", section.id, imgError);
-                // Continue with other sections even if one fails
               }
             }
           }
@@ -321,6 +349,41 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // Helper to detect subject from content analysis
+  const detectSubjectFromAnalysis = (analysis: any): SubjectType => {
+    if (!analysis) return subject;
+    
+    const keywords = analysis.theme?.keywords?.join(' ').toLowerCase() || '';
+    const mainTopic = analysis.theme?.mainTopic?.toLowerCase() || '';
+    const combined = `${keywords} ${mainTopic}`;
+    
+    const subjectMappings: Record<string, string[]> = {
+      mathematik: ['rechnen', 'mathe', 'zahlen', 'bruch', 'gleichung', 'geometrie', 'algebra'],
+      deutsch: ['grammatik', 'rechtschreibung', 'lesen', 'schreiben', 'text', 'gedicht', 'literatur'],
+      englisch: ['english', 'vocabulary', 'grammar', 'language'],
+      geschichte: ['geschichte', 'historisch', 'krieg', 'kaiser', 'mittelalter', 'reformation', 'luther', 'revolution'],
+      biologie: ['biologie', 'zelle', 'pflanze', 'tier', 'körper', 'evolution'],
+      physik: ['physik', 'kraft', 'energie', 'atom', 'elektrizität'],
+      chemie: ['chemie', 'element', 'molekül', 'reaktion'],
+      geografie: ['geografie', 'erdkunde', 'land', 'kontinent', 'klima'],
+      kunst: ['kunst', 'malen', 'zeichnen', 'künstler'],
+      musik: ['musik', 'note', 'instrument', 'komponist'],
+      sport: ['sport', 'bewegung', 'training'],
+      informatik: ['informatik', 'computer', 'programmieren', 'code'],
+      religion: ['religion', 'glaube', 'kirche', 'bibel', 'gott']
+    };
+
+    for (const [subj, kws] of Object.entries(subjectMappings)) {
+      for (const kw of kws) {
+        if (combined.includes(kw)) {
+          return subj as SubjectType;
+        }
+      }
+    }
+    
+    return subject;
   };
 
   return (
