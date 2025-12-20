@@ -21,6 +21,7 @@ export type Database = {
           content: string | null
           created_at: string
           id: string
+          module_type: string | null
           order_index: number
           title: string
           world_id: string
@@ -31,6 +32,7 @@ export type Database = {
           content?: string | null
           created_at?: string
           id?: string
+          module_type?: string | null
           order_index?: number
           title: string
           world_id: string
@@ -41,6 +43,7 @@ export type Database = {
           content?: string | null
           created_at?: string
           id?: string
+          module_type?: string | null
           order_index?: number
           title?: string
           world_id?: string

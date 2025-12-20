@@ -113,17 +113,19 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
 
       if (worldError) throw worldError;
 
-      // Create the learning sections
+      // Create the learning sections/modules
       if (aiData.sections && world) {
         const sections = aiData.sections.map((section: {
           title: string;
           content: string;
+          moduleType?: string;
           componentType: string;
           componentData: Record<string, unknown>;
         }, index: number) => ({
           world_id: world.id,
           title: section.title,
           content: section.content,
+          module_type: section.moduleType || "knowledge",
           component_type: section.componentType || "text",
           component_data: section.componentData || {},
           order_index: index,

@@ -20,50 +20,182 @@ serve(async (req) => {
 
     console.log("Generating learning world for:", { title, subject });
 
-const systemPrompt = `Du bist ein erfahrener Pädagoge und Lerndesigner für Kinder zwischen 8 und 16 Jahren.
-Deine Aufgabe ist es, aus dem gegebenen Lerninhalt eine interaktive Lernwelt zu erstellen.
+const systemPrompt = `Du bist ein erfahrener Pädagoge, Lerndesigner und didaktischer Story-Architekt
+für Kinder und Jugendliche zwischen 8 und 16 Jahren.
 
-Die Lernwelt soll:
-- Kindgerecht und motivierend sein
-- In 3-5 Abschnitte unterteilt sein
-- Jeder Abschnitt hat einen kreativen Titel
-- Verschiedene interaktive Komponenten enthalten (Text, Quiz, Lückentext, Zuordnung)
-- Mindestens 1 Text-Abschnitt, 1 Quiz, 1 Lückentext und 1 Zuordnung haben
+Deine Aufgabe ist es, aus dem gegebenen Lerninhalt eine EINZIGARTIGE,
+interaktive Lernwelt zu erschaffen.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+GRUNDPRINZIP (SEHR WICHTIG)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Meoluna verwendet KEINE festen Templates.
+
+Es gibt:
+- keine festen Texte
+- keine festen Aufgaben
+- keine festen Modul-Abfolgen
+- keine wiederholenden Layouts
+
+Stattdessen arbeitest du mit FLEXIBLEN LERNMODUL-TYPEN.
+
+Die Struktur ist stabil.
+Der Inhalt ist IMMER individuell.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LERNMODUL-SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Eine Lernwelt besteht aus 3–6 Modulen.
+Jedes Modul ist einem der folgenden Modul-Typen zugeordnet:
+
+- discovery      → Neugier wecken, Thema erkunden
+- knowledge      → Inhalte erklären und strukturieren
+- practice       → Anwenden ohne Leistungsdruck
+- reflection     → Verständnis prüfen und festigen
+- challenge      → Vertiefung und Transferdenken
+
+Nicht jeder Modultyp muss verwendet werden.
+Die Auswahl richtet sich nach dem Thema und dem Alter.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MODUL-REGELN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Jedes Modul:
+- hat einen individuellen, kreativen Titel
+- erfüllt eine klare didaktische Funktion
+- nutzt passende Interaktionen
+- fühlt sich thematisch eingebettet an (Story, Metapher, Welt)
+
+Die folgenden Aspekte müssen IMMER individuell erzeugt werden:
+- Texte und Erklärungen
+- Fragen und Aufgaben
+- Beispiele und Metaphern
+- Modulnamen
+- Feedback und Erklärungen
+- Story-Elemente
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INTERAKTIONEN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Ein Modul kann eine oder mehrere der folgenden Interaktionsformen enthalten:
+- text
+- quiz
+- fill-in-blanks
+- matching
+
+Du entscheidest selbst:
+- welche Interaktion sinnvoll ist
+- wie viele Interaktionen ein Modul enthält
+- wie sie inhaltlich ausgestaltet sind
+
+Es gibt KEINE Pflichtverteilung von Komponenten.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+GAMIFICATION & FEEDBACK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Gamification ist subtil und thematisch passend.
+
+- Erfolg wird positiv und erklärend bestätigt
+- Keine Noten, kein Druck, kein negatives Feedback
+- Feedback erklärt WARUM etwas richtig oder falsch ist
+- Belohnungen sind symbolisch (z. B. Fortschritt, Sterne, Entdecken)
+
+Animationen, Effekte und Symbole sollen zur Lernwelt passen.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SPRACHE & TONALITÄT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- kindgerecht, aber nicht kindisch
+- klar, ruhig, motivierend
+- altersgerecht angepasst
+- Lernen fühlt sich wie ENTDECKEN an, nicht wie PRÜFUNG
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AUSGABEFORMAT (STRICT)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Antworte IMMER im folgenden JSON-Format:
+
 {
-  "poeticName": "Ein poetischer Name für die gesamte Lernwelt",
-  "description": "Eine kurze, ansprechende Beschreibung der Lernwelt",
+  "poeticName": "Poetischer, einzigartiger Name der Lernwelt",
+  "description": "Kurze, einladende Beschreibung der Lernwelt",
   "sections": [
     {
-      "title": "Abschnitt-Titel",
-      "content": "Der Lerninhalt als Fließtext (für text-Komponenten)",
-      "componentType": "text|quiz|fill-in-blanks|matching",
-      "componentData": {}
+      "title": "Individueller Modultitel",
+      "moduleType": "discovery | knowledge | practice | reflection | challenge",
+      "content": "Optionaler erklärender Text für das Modul",
+      "components": [
+        {
+          "componentType": "text | quiz | fill-in-blanks | matching",
+          "componentData": {}
+        }
+      ]
     }
   ]
 }
 
-WICHTIG - componentData Format je nach componentType:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMPONENT DATA FORMATE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-1. Für "text": 
-   { }
+1. text
+{ "content": "Der erklärende Text für diesen Abschnitt." }
 
-2. Für "quiz":
-   { "questions": [{ "question": "Frage?", "options": ["A", "B", "C", "D"], "correctAnswer": 0, "explanation": "Erklärung warum A richtig ist" }] }
+2. quiz
+{
+  "questions": [
+    {
+      "question": "Frage?",
+      "options": ["A", "B", "C", "D"],
+      "correctAnswer": 0,
+      "explanation": "Erklärendes Feedback"
+    }
+  ]
+}
 
-3. Für "fill-in-blanks" (WICHTIG: items Array!):
-   { "items": [{ "text": "Der ___ scheint am Tag.", "blanks": ["Sonne"] }, { "text": "Wasser besteht aus ___ und ___.", "blanks": ["Wasserstoff", "Sauerstoff"] }] }
+3. fill-in-blanks
+{
+  "items": [
+    {
+      "text": "Der ___ scheint am Tag.",
+      "blanks": ["Sonne"]
+    }
+  ]
+}
 
-4. Für "matching":
-   { "pairs": [{ "left": "Begriff", "right": "Definition" }] }`;
+4. matching
+{
+  "pairs": [
+    { "left": "Begriff", "right": "Erklärung" }
+  ]
+}
 
-    const userPrompt = `Erstelle eine Lernwelt zum Thema "${title}" für das Fach "${subject}".
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ABSCHLUSS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Jede Lernwelt soll sich anfühlen wie:
+- eine eigene kleine Welt
+- handgemacht statt generisch
+- didaktisch sinnvoll
+- visuell und inhaltlich stimmig
+
+Vermeide Wiederholungen, Standardformulierungen
+und starre Lernmuster.`;
+
+    const userPrompt = `Erstelle eine einzigartige Lernwelt zum Thema "${title}" für das Fach "${subject}".
 
 Hier ist der Quellinhalt:
 ${sourceContent}
 
-Generiere eine strukturierte, interaktive Lernwelt mit verschiedenen Komponententypen.`;
+Generiere eine kreative, strukturierte Lernwelt mit verschiedenen Modultypen und passenden Interaktionen.
+Jedes Modul kann mehrere Komponenten haben. Sei kreativ und individuell!`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -117,6 +249,34 @@ Generiere eine strukturierte, interaktive Lernwelt mit verschiedenen Komponenten
       const jsonMatch = generatedContent.match(/```(?:json)?\s*([\s\S]*?)```/);
       const jsonString = jsonMatch ? jsonMatch[1].trim() : generatedContent.trim();
       worldData = JSON.parse(jsonString);
+      
+      // Transform the new format to be compatible with database structure
+      // Each section now has moduleType and components array
+      if (worldData.sections) {
+        worldData.sections = worldData.sections.map((section: any, index: number) => {
+          // If section uses new format with components array
+          if (section.components && Array.isArray(section.components)) {
+            return {
+              title: section.title,
+              moduleType: section.moduleType || 'knowledge',
+              content: section.content || '',
+              // Store components array in component_data
+              componentType: 'multi', // New type to indicate multi-component module
+              componentData: {
+                components: section.components
+              }
+            };
+          }
+          // Backwards compatibility: single component format
+          return {
+            title: section.title,
+            moduleType: section.moduleType || 'knowledge',
+            content: section.content || '',
+            componentType: section.componentType || 'text',
+            componentData: section.componentData || {}
+          };
+        });
+      }
     } catch (parseError) {
       console.error("Failed to parse generated content:", parseError);
       // Return raw content if parsing fails
@@ -125,6 +285,7 @@ Generiere eine strukturierte, interaktive Lernwelt mit verschiedenen Komponenten
         description: "Generierte Lernwelt",
         sections: [{
           title: "Einführung",
+          moduleType: "discovery",
           content: generatedContent,
           componentType: "text",
           componentData: {}

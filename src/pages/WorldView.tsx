@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, Navigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { WorldHeader } from '@/components/world/WorldHeader';
 import { SectionNavigation } from '@/components/world/SectionNavigation';
-import { SectionRenderer } from '@/components/world/SectionRenderer';
+import { ModuleRenderer } from '@/components/world/ModuleRenderer';
 import { useWorldProgress } from '@/hooks/useWorldProgress';
 import { getSubjectTheme, type SubjectType, type MoonPhase } from '@/lib/subjectTheme';
 import type { Json } from '@/integrations/supabase/types';
@@ -23,10 +23,11 @@ interface LearningWorld {
   creator_id: string;
 }
 
-interface LearningSection {
+interface LearningModule {
   id: string;
   title: string;
   content: string | null;
+  module_type: string;
   component_type: string;
   component_data: Json;
   order_index: number;
@@ -35,18 +36,18 @@ interface LearningSection {
 export default function WorldView() {
   const { worldId } = useParams<{ worldId: string }>();
   const [world, setWorld] = useState<LearningWorld | null>(null);
-  const [sections, setSections] = useState<LearningSection[]>([]);
+  const [modules, setModules] = useState<LearningModule[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+  const [currentModuleIndex, setCurrentModuleIndex] = useState(0);
 
   const {
     progress,
     updateSectionProgress,
     isSectionCompleted
-  } = useWorldProgress(worldId || '', sections.length);
+  } = useWorldProgress(worldId || '', modules.length);
 
-  // Fetch world and sections
+  // Fetch world and modules
   useEffect(() => {
     async function fetchWorld() {
       if (!worldId) return;
@@ -73,17 +74,22 @@ export default function WorldView() {
 
         setWorld(worldData as LearningWorld);
 
-        // Fetch sections
-        const { data: sectionsData, error: sectionsError } = await supabase
+        // Fetch modules (formerly sections)
+        const { data: modulesData, error: modulesError } = await supabase
           .from('learning_sections')
           .select('*')
           .eq('world_id', worldId)
           .order('order_index', { ascending: true });
 
-        if (sectionsError) {
-          console.error('Error fetching sections:', sectionsError);
+        if (modulesError) {
+          console.error('Error fetching modules:', modulesError);
         } else {
-          setSections(sectionsData || []);
+          // Map database fields to module structure
+          const mappedModules = (modulesData || []).map(section => ({
+            ...section,
+            module_type: section.module_type || 'knowledge'
+          }));
+          setModules(mappedModules);
         }
       } catch (err) {
         console.error('Error:', err);
@@ -100,7 +106,7 @@ export default function WorldView() {
     return world ? getSubjectTheme(world.subject) : null;
   }, [world?.subject]);
 
-  const completedSections = useMemo(() => {
+  const completedModules = useMemo(() => {
     return new Set(
       Object.entries(progress.sections)
         .filter(([_, section]) => section.completed)
@@ -108,25 +114,25 @@ export default function WorldView() {
     );
   }, [progress.sections]);
 
-  const currentSection = sections[currentSectionIndex];
+  const currentModule = modules[currentModuleIndex];
 
-  const handleSectionComplete = async (sectionId: string, score: number, maxScore: number) => {
-    await updateSectionProgress(sectionId, score, maxScore, true);
+  const handleModuleComplete = async (moduleId: string, score: number, maxScore: number) => {
+    await updateSectionProgress(moduleId, score, maxScore, true);
   };
 
   const handleNavigate = (index: number) => {
-    setCurrentSectionIndex(index);
+    setCurrentModuleIndex(index);
   };
 
   const handlePrevious = () => {
-    if (currentSectionIndex > 0) {
-      setCurrentSectionIndex(currentSectionIndex - 1);
+    if (currentModuleIndex > 0) {
+      setCurrentModuleIndex(currentModuleIndex - 1);
     }
   };
 
   const handleNext = () => {
-    if (currentSectionIndex < sections.length - 1) {
-      setCurrentSectionIndex(currentSectionIndex + 1);
+    if (currentModuleIndex < modules.length - 1) {
+      setCurrentModuleIndex(currentModuleIndex + 1);
     }
   };
 
@@ -162,8 +168,8 @@ export default function WorldView() {
     );
   }
 
-  // No sections state
-  if (sections.length === 0) {
+  // No modules state
+  if (modules.length === 0) {
     return (
       <div className="min-h-screen bg-background">
         <WorldHeader
@@ -204,43 +210,44 @@ export default function WorldView() {
         moonPhase={world.moon_phase}
         totalStars={progress.totalStars}
         completedSections={progress.completedSections}
-        totalSections={sections.length}
+        totalSections={modules.length}
       />
 
       {/* Main content */}
       <main className="container mx-auto px-4 py-6">
-        {/* Section navigation */}
+        {/* Module navigation */}
         <SectionNavigation
-          sections={sections.map(s => ({
-            id: s.id,
-            title: s.title,
-            componentType: s.component_type
+          sections={modules.map(m => ({
+            id: m.id,
+            title: m.title,
+            componentType: m.component_type,
+            moduleType: m.module_type
           }))}
-          currentIndex={currentSectionIndex}
-          completedSections={completedSections}
+          currentIndex={currentModuleIndex}
+          completedSections={completedModules}
           onNavigate={handleNavigate}
           subjectColor={theme?.color || 'hsl(var(--primary))'}
         />
 
-        {/* Current section */}
+        {/* Current module */}
         <div className="mt-8">
           <AnimatePresence mode="wait">
             <motion.div
-              key={currentSection.id}
+              key={currentModule.id}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <SectionRenderer
-                section={{
-                  ...currentSection,
-                  component_data: currentSection.component_data as Record<string, unknown>
+              <ModuleRenderer
+                module={{
+                  ...currentModule,
+                  component_data: currentModule.component_data as Record<string, unknown>
                 }}
                 subjectColor={theme?.color || 'hsl(var(--primary))'}
-                onComplete={handleSectionComplete}
-                isCompleted={isSectionCompleted(currentSection.id)}
-                previousScore={progress.sections[currentSection.id]?.score}
+                onComplete={handleModuleComplete}
+                isCompleted={isSectionCompleted(currentModule.id)}
+                previousScore={progress.sections[currentModule.id]?.score}
               />
             </motion.div>
           </AnimatePresence>
@@ -251,7 +258,7 @@ export default function WorldView() {
           <Button
             variant="outline"
             onClick={handlePrevious}
-            disabled={currentSectionIndex === 0}
+            disabled={currentModuleIndex === 0}
             className="gap-2"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -259,12 +266,12 @@ export default function WorldView() {
           </Button>
 
           <span className="text-sm text-muted-foreground">
-            {currentSectionIndex + 1} / {sections.length}
+            {currentModuleIndex + 1} / {modules.length}
           </span>
 
           <Button
             onClick={handleNext}
-            disabled={currentSectionIndex === sections.length - 1}
+            disabled={currentModuleIndex === modules.length - 1}
             className="gap-2"
             style={{ backgroundColor: theme?.color }}
           >
