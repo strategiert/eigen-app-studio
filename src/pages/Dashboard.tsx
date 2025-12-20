@@ -5,11 +5,13 @@ import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useSubscription } from "@/hooks/useSubscription";
 import { StarField } from "@/components/landing/StarField";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { WorldCard } from "@/components/dashboard/WorldCard";
 import { CreateWorldDialog } from "@/components/dashboard/CreateWorldDialog";
 import { UpgradeToCreatorCard } from "@/components/dashboard/UpgradeToCreatorCard";
+import { UpgradeDialog } from "@/components/dashboard/UpgradeDialog";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import {
   AlertDialog,
@@ -29,12 +31,14 @@ const Dashboard = () => {
   const { user, role, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const subscription = useSubscription();
 
   const [worlds, setWorlds] = useState<LearningWorld[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSubject, setFilterSubject] = useState("all");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [worldToDelete, setWorldToDelete] = useState<string | null>(null);
   const [profile, setProfile] = useState<{ display_name: string | null } | null>(null);
@@ -152,7 +156,17 @@ const Dashboard = () => {
           onSearchChange={setSearchQuery}
           filterSubject={filterSubject}
           onFilterChange={setFilterSubject}
-          onCreateClick={() => setCreateDialogOpen(true)}
+          onCreateClick={() => {
+            // Check subscription limit before opening create dialog
+            if (!subscription.loading && !subscription.canCreate) {
+              setUpgradeDialogOpen(true);
+            } else {
+              setCreateDialogOpen(true);
+            }
+          }}
+          currentCount={subscription.currentCount}
+          maxLimit={subscription.maxLimit}
+          currentPlan={subscription.currentPlan}
         />
 
         {loading ? (
@@ -197,7 +211,17 @@ const Dashboard = () => {
       <CreateWorldDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
-        onWorldCreated={fetchWorlds}
+        onWorldCreated={() => {
+          fetchWorlds();
+          subscription.refresh();
+        }}
+      />
+
+      <UpgradeDialog
+        open={upgradeDialogOpen}
+        onOpenChange={setUpgradeDialogOpen}
+        currentCount={subscription.currentCount}
+        maxLimit={subscription.maxLimit}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
