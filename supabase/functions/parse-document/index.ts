@@ -25,17 +25,57 @@ serve(async (req) => {
   }
 
   try {
+    // Validate authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    // Create client with user's auth for validation
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: { Authorization: authHeader },
+      },
+    });
+
+    // Validate user is authenticated
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    if (authError || !user) {
+      console.error('Auth error:', authError);
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log("Parse document request from user:", user.id);
+
     const { filePath, mimeType } = await req.json();
     
     if (!filePath) {
       throw new Error("No file path provided");
     }
 
+    // Validate that the file belongs to the requesting user
+    const fileFolder = filePath.split('/')[0];
+    if (fileFolder !== user.id) {
+      console.error('User attempting to access another user\'s file:', { userId: user.id, filePath });
+      return new Response(JSON.stringify({ error: 'Access denied' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     console.log("Parsing document from path:", filePath, "MIME type:", mimeType);
 
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    // Create Supabase client with service role for storage access
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Download the file from storage
@@ -150,7 +190,7 @@ Regeln:
       throw new Error("No text could be extracted from the document");
     }
 
-    console.log("Extracted text length:", extractedText.length);
+    console.log("Extracted text length:", extractedText.length, "for user:", user.id);
 
     return new Response(JSON.stringify({
       text: extractedText,

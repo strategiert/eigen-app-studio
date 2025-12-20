@@ -12,20 +12,69 @@ serve(async (req) => {
   }
 
   try {
+    // Validate authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    // Create client with user's auth for validation
+    const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: {
+        headers: { Authorization: authHeader },
+      },
+    });
+
+    // Validate user is authenticated
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    if (authError || !user) {
+      console.error('Auth error:', authError);
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { prompt, sectionId, worldId, subject } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
-    
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error("Supabase configuration is missing");
-    }
 
-    console.log("Generating image for section:", { sectionId, worldId, subject });
+    console.log("Generating image for user:", user.id, "section:", sectionId, "world:", worldId);
+
+    // If worldId is provided, verify the user owns this world
+    if (worldId) {
+      const { data: worldData, error: worldError } = await supabaseAuth
+        .from('learning_worlds')
+        .select('creator_id')
+        .eq('id', worldId)
+        .single();
+      
+      if (worldError || !worldData) {
+        console.error('World not found:', worldError);
+        return new Response(JSON.stringify({ error: 'World not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      if (worldData.creator_id !== user.id) {
+        console.error('User does not own this world:', { userId: user.id, creatorId: worldData.creator_id });
+        return new Response(JSON.stringify({ error: 'Access denied' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
 
     // Create enhanced prompt for educational illustrations
     const enhancedPrompt = `Educational illustration for children (ages 8-16), subject: ${subject || 'general'}. 
@@ -74,7 +123,7 @@ Requirements: No text in image, bright colors, simple shapes, engaging and invit
     }
 
     const data = await response.json();
-    console.log("AI response received");
+    console.log("AI response received for user:", user.id);
 
     // Extract image from response
     const imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
@@ -99,6 +148,7 @@ Requirements: No text in image, bright colors, simple shapes, engaging and invit
           const base64Data = base64Match[2];
           const imageBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
           
+          // Use service role client for storage operations
           const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
           
           const fileName = `${worldId}/${sectionId}.${imageType}`;
@@ -136,7 +186,7 @@ Requirements: No text in image, bright colors, simple shapes, engaging and invit
               console.error("Section update error:", updateError);
             }
             
-            console.log("Image stored and section updated:", storedUrl);
+            console.log("Image stored and section updated:", storedUrl, "for user:", user.id);
           }
         }
       } catch (storageError) {
