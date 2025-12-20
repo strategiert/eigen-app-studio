@@ -3,7 +3,7 @@ import { Check, FileText, Brain, Sparkles, Loader2 } from "lucide-react";
 import { MoonLogo } from "@/components/icons/MoonLogo";
 
 interface GenerationProgressProps {
-  stage: "uploading" | "extracting" | "analyzing" | "generating" | "images" | "finalizing" | "complete";
+  stage: "uploading" | "extracting" | "analyzing" | "designing" | "generating" | "images" | "finalizing" | "complete";
   progress?: number;
 }
 
@@ -11,6 +11,7 @@ const stages = [
   { id: "uploading", label: "Hochladen...", icon: FileText },
   { id: "extracting", label: "Text wird extrahiert...", icon: FileText },
   { id: "analyzing", label: "Analysiere Lerninhalt...", icon: Brain },
+  { id: "designing", label: "Entwickle einzigartiges Design...", icon: Sparkles },
   { id: "generating", label: "Erstelle interaktive Module...", icon: Sparkles },
   { id: "images", label: "Generiere Bilder...", icon: Sparkles },
   { id: "finalizing", label: "Füge Quiz-Fragen hinzu...", icon: Sparkles },
@@ -153,7 +154,8 @@ export const GenerationProgress = ({ stage, progress }: GenerationProgressProps)
       >
         {stage === "uploading" && "Datei wird hochgeladen..."}
         {stage === "extracting" && "KI liest und analysiert das Dokument..."}
-        {stage === "analyzing" && "Struktur und Kernkonzepte werden erkannt..."}
+        {stage === "analyzing" && "Thema, Stimmung und Konzepte werden erkannt..."}
+        {stage === "designing" && "Ein einzigartiges visuelles Konzept wird entwickelt..."}
         {stage === "generating" && "Interaktive Lernmodule werden erstellt..."}
         {stage === "images" && "Illustrationen werden generiert..."}
         {stage === "finalizing" && "Quizfragen und Übungen werden generiert..."}
