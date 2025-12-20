@@ -330,6 +330,19 @@ export type Database = {
     Functions: {
       get_follower_count: { Args: { user_uuid: string }; Returns: number }
       get_following_count: { Args: { user_uuid: string }; Returns: number }
+      get_public_profile: {
+        Args: { profile_id: string }
+        Returns: {
+          avatar_url: string
+          bio: string
+          created_at: string
+          display_name: string
+          id: string
+          is_public: boolean
+          school: string
+          website: string
+        }[]
+      }
       get_world_rating: {
         Args: { world_uuid: string }
         Returns: {

@@ -6,6 +6,43 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Authentication helper
+async function validateAuth(req: Request): Promise<{ user: any; error: Response | null }> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return {
+      user: null,
+      error: new Response(JSON.stringify({ error: 'Missing authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    };
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: { Authorization: authHeader },
+    },
+  });
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    console.error('Auth error:', authError);
+    return {
+      user: null,
+      error: new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    };
+  }
+
+  return { user, error: null };
+}
+
 // Map keywords to subjects for automatic detection
 const subjectKeywords: Record<string, string[]> = {
   mathematik: ['rechnen', 'mathe', 'mathematik', 'zahlen', 'bruch', 'brüche', 'gleichung', 'geometrie', 'algebra', 'division', 'multiplikation', 'addition', 'subtraktion', 'prozent', 'wurzel', 'potenz'],
@@ -71,6 +108,14 @@ serve(async (req) => {
   }
 
   try {
+    // Validate authentication
+    const { user, error: authError } = await validateAuth(req);
+    if (authError) {
+      return authError;
+    }
+
+    console.log("Generate world request from user:", user.id);
+
     const { sourceContent, subject: providedSubject, title, worldId } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
