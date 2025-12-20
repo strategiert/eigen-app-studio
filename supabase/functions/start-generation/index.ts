@@ -98,22 +98,24 @@ async function runGeneration(
     console.log("Phase 1: Analyzing content...");
     await updateStatus(supabase, worldId, 'analyzing');
     
-    const analysisPrompt = `Analyze this educational content and extract key information for creating a learning experience.
+    const analysisPrompt = `Analysiere diesen Lerninhalt und extrahiere wichtige Informationen für die Erstellung einer Lernerfahrung.
 
-Return a JSON object with:
+WICHTIG: Alle Texte müssen auf DEUTSCH sein!
+
+Gib ein JSON-Objekt zurück mit:
 {
   "theme": {
-    "mainTopic": "The central subject of the content",
-    "keywords": ["list", "of", "key", "terms"],
-    "targetAge": "estimated age group (e.g., '10-12')",
+    "mainTopic": "Das zentrale Thema des Inhalts",
+    "keywords": ["Liste", "von", "Schlüsselbegriffen"],
+    "targetAge": "geschätzte Altersgruppe (z.B. '10-12')",
     "difficulty": "beginner/intermediate/advanced"
   },
   "structure": {
-    "conceptCount": number of main concepts,
+    "conceptCount": Anzahl der Hauptkonzepte,
     "hasExamples": true/false,
     "contentType": "theoretical/practical/mixed"
   },
-  "learningObjectives": ["what students will learn"]
+  "learningObjectives": ["was Schüler lernen werden"]
 }`;
 
     const contentAnalysis = await callAI(analysisPrompt, `Title: ${title}\n\nContent:\n${sourceContent.substring(0, 8000)}`);
@@ -123,29 +125,31 @@ Return a JSON object with:
     console.log("Phase 2: Designing world...");
     await updateStatus(supabase, worldId, 'designing');
     
-    const designPrompt = `You are a creative director designing a unique visual world for an educational experience.
+    const designPrompt = `Du bist ein Creative Director und gestaltest eine einzigartige visuelle Welt für eine Lernerfahrung.
 
-Based on the content analysis, create a unique visual concept that reflects the subject matter.
+Basierend auf der Inhaltsanalyse, erstelle ein einzigartiges visuelles Konzept das den Lerninhalt widerspiegelt.
 
-Return a JSON object with:
+WICHTIG: Alle Texte (name, tagline, title, description) müssen auf DEUTSCH sein!
+
+Gib ein JSON-Objekt zurück mit:
 {
   "worldConcept": {
-    "name": "A poetic/creative name for this learning world",
-    "tagline": "A short, inspiring description",
-    "atmosphere": "Description of the visual atmosphere"
+    "name": "Ein poetischer/kreativer deutscher Name für diese Lernwelt",
+    "tagline": "Eine kurze, inspirierende deutsche Beschreibung",
+    "atmosphere": "Beschreibung der visuellen Atmosphäre (deutsch)"
   },
   "visualTheme": {
-    "primaryColor": "HSL color as 'hsl(h, s%, l%)'",
-    "secondaryColor": "HSL color",
-    "accentColor": "HSL color",
-    "backgroundGradient": "CSS gradient",
-    "styleHint": "Visual style description for image generation"
+    "primaryColor": "HSL Farbe als 'hsl(h, s%, l%)'",
+    "secondaryColor": "HSL Farbe",
+    "accentColor": "HSL Farbe",
+    "backgroundGradient": "CSS Gradient",
+    "styleHint": "Beschreibung des visuellen Stils für Bildgenerierung"
   },
   "sections": [
     {
-      "title": "Section title",
+      "title": "Abschnittstitel (deutsch)",
       "type": "knowledge/practice/quiz",
-      "description": "What this section covers"
+      "description": "Was dieser Abschnitt behandelt (deutsch)"
     }
   ]
 }`;
@@ -157,41 +161,46 @@ Return a JSON object with:
     console.log("Phase 3: Generating content...");
     await updateStatus(supabase, worldId, 'generating');
     
-    const contentPrompt = `Create interactive educational content with multiple sections.
+    const contentPrompt = `Erstelle interaktive Lerninhalte mit mehreren Abschnitten.
 
-Each section should have one of these component types:
-- "text": Explanatory content with markdown
-- "quiz": Multiple choice questions
-- "fill-blanks": Fill in the blank exercises
-- "matching": Match pairs exercise
+KRITISCH WICHTIG:
+- ALLE Texte (title, content, questions, options, explanations) müssen auf DEUTSCH sein!
+- Verwende deutsche Fachbegriffe für das Unterrichtsfach
+- Bei Fremdsprachen (z.B. Englisch): Erkläre die Begriffe auf Deutsch, zeige dann englische Beispiele
 
-Return JSON:
+Jeder Abschnitt sollte einen dieser Komponententypen haben:
+- "text": Erklärende Inhalte mit Markdown
+- "quiz": Multiple-Choice-Fragen
+- "fill-blanks": Lückentextübungen
+- "matching": Zuordnungsübung
+
+Gib JSON zurück:
 {
-  "poeticName": "Creative name for this world",
-  "description": "Brief description",
+  "poeticName": "Kreativer deutscher Name für diese Welt",
+  "description": "Kurze deutsche Beschreibung",
   "visualTheme": {
     "primaryColor": "hsl(...)",
     "secondaryColor": "hsl(...)",
     "accentColor": "hsl(...)",
-    "styleHint": "visual style for images"
+    "styleHint": "Beschreibung des visuellen Stils"
   },
   "sections": [
     {
-      "title": "Section title",
-      "content": "Main content (markdown for text sections)",
+      "title": "Abschnittstitel (DEUTSCH)",
+      "content": "Hauptinhalt (Markdown für Text-Abschnitte, DEUTSCH)",
       "moduleType": "knowledge/practice",
       "componentType": "text/quiz/fill-blanks/matching",
       "componentData": {
-        // For quiz: { questions: [{ question, options: [], correctIndex, explanation }] }
-        // For fill-blanks: { sentences: [{ text: "The ___ is...", blanks: ["answer"] }] }
-        // For matching: { pairs: [{ left: "term", right: "definition" }] }
+        // Für quiz: { questions: [{ question: "Deutsche Frage?", options: ["Deutsche Option 1", "Deutsche Option 2"], correctIndex: 0, explanation: "Deutsche Erklärung" }] }
+        // Für fill-blanks: { sentences: [{ text: "Die ___ ist...", blanks: ["Antwort"] }] }
+        // Für matching: { pairs: [{ left: "Begriff", right: "Definition" }] }
       },
-      "imagePrompt": "Detailed prompt for generating an illustration"
+      "imagePrompt": "Detaillierter Prompt für die Bildgenerierung (deutsch)"
     }
   ]
 }
 
-Create 4-6 sections mixing explanation and interactive exercises.`;
+Erstelle 4-6 Abschnitte mit einer Mischung aus Erklärungen und interaktiven Übungen. ALLES AUF DEUTSCH!`;
 
     const generatedContent = await callAI(contentPrompt, `Title: ${title}\nSubject: ${subject}\n\nWorld Design:\n${JSON.stringify(worldDesign, null, 2)}\n\nSource Content:\n${sourceContent.substring(0, 10000)}`);
     console.log("Content generation complete with", generatedContent?.sections?.length, "sections");
