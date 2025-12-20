@@ -52,159 +52,17 @@ function detectSubject(content: string, title: string): string {
   return bestMatch;
 }
 
-// Generate visual theme based on subject and content
-function generateVisualTheme(subject: string, title: string, content: string) {
-  const themes: Record<string, any> = {
-    mathematik: {
-      primaryHue: 220,
-      saturation: 80,
-      mood: 'cool',
-      era: 'modern',
-      styleHint: 'Abstrakte geometrische Formen, blaue und violette Farbtöne, moderne Ästhetik',
-      patternStyle: 'geometric',
-      accentHue: 180
-    },
-    deutsch: {
-      primaryHue: 350,
-      saturation: 70,
-      mood: 'warm',
-      era: 'timeless',
-      styleHint: 'Warme Rottöne, Bücher und Schrift, literarische Atmosphäre',
-      patternStyle: 'organic',
-      accentHue: 30
-    },
-    englisch: {
-      primaryHue: 200,
-      saturation: 75,
-      mood: 'playful',
-      era: 'modern',
-      styleHint: 'Internationale Symbole, lebendige Blautöne, weltoffene Stimmung',
-      patternStyle: 'abstract',
-      accentHue: 40
-    },
-    geschichte: {
-      primaryHue: 25,
-      saturation: 55,
-      mood: 'warm',
-      era: 'medieval',
-      styleHint: 'Sepia-Töne, historische Elemente, Pergament-Textur, antike Atmosphäre',
-      patternStyle: 'historical',
-      accentHue: 35
-    },
-    biologie: {
-      primaryHue: 140,
-      saturation: 65,
-      mood: 'natural',
-      era: 'timeless',
-      styleHint: 'Naturfarben, Grüntöne, organische Formen, Lebewesen und Pflanzen',
-      patternStyle: 'organic',
-      accentHue: 80
-    },
-    physik: {
-      primaryHue: 270,
-      saturation: 75,
-      mood: 'mystical',
-      era: 'futuristic',
-      styleHint: 'Kosmische Farben, Energie und Licht, wissenschaftliche Eleganz',
-      patternStyle: 'scientific',
-      accentHue: 200
-    },
-    chemie: {
-      primaryHue: 30,
-      saturation: 80,
-      mood: 'warm',
-      era: 'modern',
-      styleHint: 'Laborfarben, Orange und Gelb, Moleküle und Reaktionen',
-      patternStyle: 'scientific',
-      accentHue: 180
-    },
-    geografie: {
-      primaryHue: 160,
-      saturation: 60,
-      mood: 'natural',
-      era: 'timeless',
-      styleHint: 'Erdtöne, Landkarten, Kontinente und Landschaften',
-      patternStyle: 'organic',
-      accentHue: 30
-    },
-    kunst: {
-      primaryHue: 320,
-      saturation: 75,
-      mood: 'playful',
-      era: 'renaissance',
-      styleHint: 'Kreative Farben, künstlerische Pinselstriche, bunte Palette',
-      patternStyle: 'abstract',
-      accentHue: 50
-    },
-    musik: {
-      primaryHue: 280,
-      saturation: 70,
-      mood: 'mystical',
-      era: 'timeless',
-      styleHint: 'Harmonische Farben, Noten und Instrumente, musikalische Wellen',
-      patternStyle: 'abstract',
-      accentHue: 200
-    },
-    sport: {
-      primaryHue: 15,
-      saturation: 85,
-      mood: 'warm',
-      era: 'modern',
-      styleHint: 'Dynamische Farben, Orange und Rot, Bewegung und Energie',
-      patternStyle: 'geometric',
-      accentHue: 60
-    },
-    informatik: {
-      primaryHue: 200,
-      saturation: 80,
-      mood: 'cool',
-      era: 'futuristic',
-      styleHint: 'Digitale Ästhetik, Cyan und Blau, Code und Technologie',
-      patternStyle: 'geometric',
-      accentHue: 150
-    },
-    religion: {
-      primaryHue: 35,
-      saturation: 50,
-      mood: 'mystical',
-      era: 'ancient',
-      styleHint: 'Goldene und warme Töne, spirituelle Symbole, feierliche Atmosphäre',
-      patternStyle: 'historical',
-      accentHue: 45
-    },
-    allgemein: {
-      primaryHue: 250,
-      saturation: 70,
-      mood: 'playful',
-      era: 'modern',
-      styleHint: 'Freundliche Farben, einladende Atmosphäre, vielfältige Elemente',
-      patternStyle: 'abstract',
-      accentHue: 45
-    }
+// Default fallback theme (only used if AI fails)
+function getDefaultTheme() {
+  return {
+    primaryHue: 250,
+    saturation: 70,
+    mood: 'playful',
+    era: 'modern',
+    styleHint: 'Freundliche Farben, einladende Atmosphäre',
+    patternStyle: 'abstract',
+    accentHue: 45
   };
-
-  const baseTheme = themes[subject] || themes.allgemein;
-  
-  // Customize based on title/content keywords
-  if (title.toLowerCase().includes('luther') || content.toLowerCase().includes('reformation')) {
-    baseTheme.era = 'medieval';
-    baseTheme.styleHint = 'Mittelalterliche Atmosphäre, Kirchenfenster, Pergament und Federkiel, Reformationszeit';
-    baseTheme.primaryHue = 30;
-    baseTheme.mood = 'mystical';
-  }
-  
-  if (title.toLowerCase().includes('römer') || content.toLowerCase().includes('antike')) {
-    baseTheme.era = 'ancient';
-    baseTheme.styleHint = 'Antike römische Architektur, Marmor und Gold, klassische Ästhetik';
-  }
-  
-  if (title.toLowerCase().includes('weltkrieg') || content.toLowerCase().includes('nazi')) {
-    baseTheme.mood = 'serious';
-    baseTheme.saturation = 40;
-    baseTheme.styleHint = 'Historische Fotografien, Sepia und Grautöne, dokumentarischer Stil';
-  }
-
-  return baseTheme;
 }
 
 serve(async (req) => {
@@ -225,27 +83,69 @@ serve(async (req) => {
     // Detect the actual subject from content
     const detectedSubject = detectSubject(sourceContent, title);
     const actualSubject = providedSubject === 'allgemein' ? detectedSubject : providedSubject;
-    
-    // Generate visual theme for this world
-    const visualTheme = generateVisualTheme(actualSubject, title, sourceContent);
 
     console.log("Generating learning world for:", { title, providedSubject, detectedSubject, actualSubject });
-    console.log("Visual theme:", visualTheme);
 
 const systemPrompt = `Du bist ein erfahrener Pädagoge, Lerndesigner und didaktischer Story-Architekt
 für Kinder und Jugendliche zwischen 8 und 16 Jahren.
 
 Deine Aufgabe ist es, aus dem gegebenen Lerninhalt eine EINZIGARTIGE,
-interaktive Lernwelt zu erschaffen.
+interaktive Lernwelt zu erschaffen - inklusive eines individuellen visuellen Themas.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-VISUELLES THEMA DIESER WELT
+VISUELLES THEMA GENERIEREN (KRITISCH!)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Diese Lernwelt hat folgendes visuelles Thema:
-- Stimmung: ${visualTheme.mood}
-- Zeitepoche: ${visualTheme.era}
-- Stil: ${visualTheme.styleHint}
+Du MUSST ein einzigartiges visuelles Theme für diese Lernwelt generieren.
+Analysiere den Inhalt und wähle Farben, Stimmung und Stil, die GENAU zu diesem Thema passen.
+
+Das visualTheme-Objekt muss enthalten:
+- primaryHue: Zahl 0-360 (Hauptfarbton im HSL-Farbkreis)
+  • 0-30: Rot/Orange (Wärme, Energie, Geschichte)
+  • 30-60: Gelb/Gold (Optimismus, Antike, Reichtum)
+  • 60-120: Grün (Natur, Biologie, Wachstum)
+  • 120-180: Cyan/Türkis (Frische, Meer, Wissenschaft)
+  • 180-240: Blau (Ruhe, Technologie, Mathematik)
+  • 240-300: Violett/Lila (Mystik, Kreativität, Magie)
+  • 300-360: Magenta/Pink (Kunst, Musik, Fantasie)
+
+- saturation: Zahl 40-90 (Farbsättigung)
+  • 40-55: Gedämpft, historisch, seriös
+  • 55-70: Ausgewogen, professionell
+  • 70-90: Lebendig, kindgerecht, energisch
+
+- accentHue: Zahl 0-360 (Akzentfarbe, sollte komplementär oder harmonisch sein)
+
+- mood: Eine der folgenden Stimmungen
+  • warm: Einladend, gemütlich (Geschichte, Literatur)
+  • cool: Klar, fokussiert (Mathematik, Technologie)
+  • mystical: Geheimnisvoll, spirituell (Religion, Physik, Astronomie)
+  • playful: Verspielt, lebendig (Sprachen, Kunst)
+  • serious: Ernst, dokumentarisch (Kriege, schwere Themen)
+  • natural: Organisch, lebendig (Biologie, Geografie)
+
+- era: Zeitepoche, die zum Thema passt
+  • ancient: Antike (Griechen, Römer, Ägypter)
+  • medieval: Mittelalter (Reformation, Ritter)
+  • renaissance: Renaissance (Kunst, Wissenschaft erwacht)
+  • modern: Moderne (20./21. Jahrhundert)
+  • futuristic: Futuristisch (Technologie, Weltraum)
+  • timeless: Zeitlos (allgemeine Themen)
+
+- patternStyle: Visuelles Muster
+  • geometric: Geometrisch (Mathe, Informatik)
+  • organic: Organisch (Biologie, Natur)
+  • abstract: Abstrakt (Kunst, Sprachen)
+  • historical: Historisch (Geschichte, Religion)
+  • scientific: Wissenschaftlich (Physik, Chemie)
+
+- styleHint: DETAILLIERTE Beschreibung für Bildgenerierung (mind. 2 Sätze!)
+  Beschreibe konkret: Atmosphäre, typische Objekte, Farbpalette, Lichtstimmung.
+  
+  BEISPIELE:
+  • Martin Luther: "Warmes Kerzenlicht in einem mittelalterlichen Kloster, Pergamentrollen und Federkiele auf einem Holzschreibtisch, gotische Kirchenfenster im Hintergrund, Sepia- und Goldtöne"
+  • Bruchrechnen: "Moderne, cleane Ästhetik mit geometrischen Formen, Kreise die in Segmente geteilt werden, kühle Blautöne mit orangefarbenen Akzenten"
+  • Regenwald: "Üppiges Grün mit Sonnenstrahlen durch Blätterdach, exotische Tiere, Wassertropfen auf Blättern, leuchtende Grün- und Türkistöne"
 
 Passe deine Texte, Metaphern und Modulnamen an dieses Thema an!
 Die Sprache sollte zur Epoche und Stimmung passen.
@@ -291,11 +191,11 @@ Für JEDES Modul musst du einen "imagePrompt" erstellen.
 Dieser wird verwendet, um automatisch ein passendes Bild zu generieren.
 
 Der imagePrompt sollte:
-- Das visuelle Thema der Welt berücksichtigen (${visualTheme.styleHint})
+- Das visuelle Thema der Welt berücksichtigen (aus deinem generierten styleHint)
 - Kindgerecht aber nicht kindisch sein
 - Konkret und beschreibend sein
-- Zur Epoche passen (${visualTheme.era})
-- Die Stimmung einfangen (${visualTheme.mood})
+- Zur gewählten Epoche passen
+- Die gewählte Stimmung einfangen
 
 Beispiel für Martin Luther:
 "Ein mittelalterliches Studierzimmer mit Kerzenlicht, ein Mönch studiert eine große Bibel, Federkiel und Pergament auf dem Schreibtisch, warme Sepia-Töne"
@@ -370,6 +270,15 @@ Antworte IMMER im folgenden JSON-Format:
   "poeticName": "Poetischer, einzigartiger Name der Lernwelt",
   "description": "Kurze, einladende Beschreibung der Lernwelt",
   "detectedSubject": "${actualSubject}",
+  "visualTheme": {
+    "primaryHue": 30,
+    "saturation": 55,
+    "accentHue": 45,
+    "mood": "mystical",
+    "era": "medieval",
+    "patternStyle": "historical",
+    "styleHint": "Detaillierte Beschreibung für Bildgenerierung..."
+  },
   "sections": [
     {
       "title": "Individueller Modultitel",
@@ -385,6 +294,8 @@ Antworte IMMER im folgenden JSON-Format:
     }
   ]
 }
+
+WICHTIG: Das visualTheme-Objekt ist PFLICHT und muss einzigartig zum Thema passen!
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 COMPONENT DATA FORMATE
@@ -437,15 +348,13 @@ und starre Lernmuster.`;
 
     const userPrompt = `Erstelle eine einzigartige Lernwelt zum Thema "${title}" für das Fach "${actualSubject}".
 
-Visuelles Thema: ${visualTheme.styleHint}
-Epoche/Stimmung: ${visualTheme.era} / ${visualTheme.mood}
-
 Hier ist der Quellinhalt:
 ${sourceContent}
 
-Generiere eine kreative, strukturierte Lernwelt mit verschiedenen Modultypen und passenden Interaktionen.
-Jedes Modul MUSS einen imagePrompt haben, der zum visuellen Thema passt.
-Sei kreativ und individuell - diese Lernwelt soll einzigartig sein!`;
+WICHTIG: 
+1. Generiere ein einzigartiges visualTheme basierend auf dem INHALT (nicht nur dem Fach!)
+2. Jedes Modul MUSS einen imagePrompt haben, der zum visuellen Thema passt
+3. Sei kreativ und individuell - diese Lernwelt soll einzigartig sein!`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -528,27 +437,34 @@ Sei kreativ und individuell - diese Lernwelt soll einzigartig sein!`;
         });
       }
       
-      // Add visual theme and detected subject to response
-      worldData.visualTheme = visualTheme;
+      // Ensure visualTheme exists (should come from AI response)
+      if (!worldData.visualTheme) {
+        worldData.visualTheme = getDefaultTheme();
+      }
       worldData.detectedSubject = actualSubject;
       
     } catch (parseError) {
       console.error("Failed to parse generated content:", parseError);
+      const defaultTheme = getDefaultTheme();
       worldData = {
         poeticName: title,
         description: "Generierte Lernwelt",
-        visualTheme: visualTheme,
+        visualTheme: defaultTheme,
         detectedSubject: actualSubject,
         sections: [{
           title: "Einführung",
           moduleType: "discovery",
           content: generatedContent,
-          imagePrompt: `Einladende Illustration zum Thema ${title}, ${visualTheme.styleHint}`,
+          imagePrompt: `Einladende Illustration zum Thema ${title}, ${defaultTheme.styleHint}`,
           componentType: "text",
           componentData: {}
         }]
       };
     }
+
+    // Get the visual theme from worldData (generated by AI)
+    const visualTheme = worldData.visualTheme || getDefaultTheme();
+    console.log("AI-generated visual theme:", visualTheme);
 
     // Generate images for each section if we have worldId and supabase config
     if (worldId && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
@@ -575,7 +491,7 @@ Sei kreativ und individuell - diese Lernwelt soll einzigartig sein!`;
         
         try {
           const enhancedPrompt = `Educational illustration for children (ages 8-16), subject: ${actualSubject}. 
-Style: ${visualTheme.styleHint}, ${visualTheme.mood} mood, ${visualTheme.era} era.
+Style: ${visualTheme.styleHint || 'Educational and engaging'}, ${visualTheme.mood || 'playful'} mood, ${visualTheme.era || 'modern'} era.
 Scene: ${section.imagePrompt}
 Requirements: No text in image, bright colors, engaging and inviting visual, child-appropriate.`;
 
