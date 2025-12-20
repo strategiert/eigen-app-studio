@@ -25,6 +25,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { VoiceRecorder } from "./VoiceRecorder";
 import { GenerationProgress } from "./GenerationProgress";
+import { logger } from "@/lib/logger";
+import { retrySupabaseFunction } from "@/lib/retry";
 
 type SubjectType = Database["public"]["Enums"]["subject_type"];
 type GenerationStage = "uploading" | "extracting" | "analyzing" | "designing" | "generating" | "images" | "finalizing" | "complete";
@@ -203,43 +205,51 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
     setGenerationStage("analyzing");
 
     try {
+      logger.userAction('create_world_started', { title, contentLength: sourceContent.length });
+
       // PHASE 1: Analyze Content
-      console.log("Phase 1: Analyzing content...");
-      const { data: contentAnalysis, error: analysisError } = await supabase.functions.invoke("analyze-content", {
-        body: { title, sourceContent },
+      logger.info("Phase 1: Analyzing content...", { component: 'CreateWorldDialog', phase: 1 });
+
+      const contentAnalysis = await retrySupabaseFunction(
+        "analyze-content",
+        { title, sourceContent },
+        (name, opts) => supabase.functions.invoke(name, opts)
+      );
+
+      logger.info("Content analysis complete", {
+        component: 'CreateWorldDialog',
+        mainTopic: contentAnalysis?.theme?.mainTopic
       });
-
-      if (analysisError) {
-        throw new Error(analysisError.message || "Content-Analyse fehlgeschlagen");
-      }
-
-      console.log("Content analysis complete:", contentAnalysis?.theme?.mainTopic);
 
       // PHASE 2: Design World
       setGenerationStage("designing");
-      console.log("Phase 2: Designing world...");
-      const { data: worldDesign, error: designError } = await supabase.functions.invoke("design-world", {
-        body: { title, contentAnalysis },
+      logger.info("Phase 2: Designing world...", { component: 'CreateWorldDialog', phase: 2 });
+
+      const worldDesign = await retrySupabaseFunction(
+        "design-world",
+        { title, contentAnalysis },
+        (name, opts) => supabase.functions.invoke(name, opts)
+      );
+
+      logger.info("World design complete", {
+        component: 'CreateWorldDialog',
+        worldName: worldDesign?.worldConcept?.name
       });
-
-      if (designError) {
-        throw new Error(designError.message || "World-Design fehlgeschlagen");
-      }
-
-      console.log("World design complete:", worldDesign?.worldConcept?.name);
 
       // PHASE 3: Generate Content
       setGenerationStage("generating");
-      console.log("Phase 3: Generating content...");
-      const { data: aiData, error: contentError } = await supabase.functions.invoke("generate-content", {
-        body: { title, sourceContent, worldDesign, contentAnalysis },
+      logger.info("Phase 3: Generating content...", { component: 'CreateWorldDialog', phase: 3 });
+
+      const aiData = await retrySupabaseFunction(
+        "generate-content",
+        { title, sourceContent, worldDesign, contentAnalysis },
+        (name, opts) => supabase.functions.invoke(name, opts)
+      );
+
+      logger.info("Content generation complete", {
+        component: 'CreateWorldDialog',
+        sectionCount: aiData?.sections?.length
       });
-
-      if (contentError) {
-        throw new Error(contentError.message || "Content-Generierung fehlgeschlagen");
-      }
-
-      console.log("Content generation complete with", aiData?.sections?.length, "sections");
 
       setGenerationStage("finalizing");
 
@@ -340,10 +350,29 @@ export const CreateWorldDialog = ({ open, onOpenChange, onWorldCreated }: Create
         onWorldCreated();
       }, 1500);
     } catch (error) {
-      console.error("Error creating world:", error);
+      logger.error("Failed to create world", error, {
+        component: 'CreateWorldDialog',
+        title,
+        stage: generationStage
+      });
+
+      // Determine user-friendly error message
+      let userMessage = "Konnte die Lernwelt nicht erstellen.";
+      if (error instanceof Error) {
+        if (error.message.includes('rate limit')) {
+          userMessage = "Zu viele Anfragen. Bitte versuche es in ein paar Minuten erneut.";
+        } else if (error.message.includes('timeout')) {
+          userMessage = "Die Generierung hat zu lange gedauert. Bitte versuche es erneut.";
+        } else if (error.message.includes('Nicht angemeldet')) {
+          userMessage = "Du musst angemeldet sein. Bitte melde dich erneut an.";
+        } else {
+          userMessage = error.message;
+        }
+      }
+
       toast({
         title: "Fehler",
-        description: error instanceof Error ? error.message : "Konnte die Lernwelt nicht erstellen.",
+        description: userMessage,
         variant: "destructive",
       });
       setStep(2); // Go back to content step
