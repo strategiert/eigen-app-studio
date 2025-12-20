@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Clock, Eye, Edit, Trash2, Globe, Lock, Sparkles, Star } from "lucide-react";
+import { Clock, Eye, Edit, Trash2, Globe, Lock, Sparkles, Share2 } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ShareWorldDialog } from "./ShareWorldDialog";
 
 interface WorldCardProps {
   world: {
@@ -20,6 +22,7 @@ interface WorldCardProps {
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   onView: (id: string) => void;
+  onWorldUpdated?: () => void;
 }
 
 const subjectColors: Record<string, string> = {
@@ -43,9 +46,12 @@ const moonPhaseIcons: Record<string, string> = {
   zunehmend: "🌒",
   halbmond: "🌓",
   vollmond: "🌕",
+  abnehmend: "🌘",
 };
 
-export const WorldCard = ({ world, onEdit, onDelete, onView }: WorldCardProps) => {
+export const WorldCard = ({ world, onEdit, onDelete, onView, onWorldUpdated }: WorldCardProps) => {
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  
   const subjectColor = subjectColors[world.subject] || subjectColors.allgemein;
   const moonIcon = moonPhaseIcons[world.moon_phase] || "🌙";
   
@@ -58,96 +64,117 @@ export const WorldCard = ({ world, onEdit, onDelete, onView }: WorldCardProps) =
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4 }}
-      transition={{ duration: 0.2 }}
-    >
-      <Card className="bg-card/80 backdrop-blur-sm border-border/50 hover:border-moon/30 transition-all duration-300 overflow-hidden group">
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-moon via-aurora to-accent opacity-0 group-hover:opacity-100 transition-opacity" />
-        
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xl">{moonIcon}</span>
-                <h3 className="font-semibold text-foreground truncate">{world.title}</h3>
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        whileHover={{ y: -4 }}
+        transition={{ duration: 0.2 }}
+      >
+        <Card className="bg-card/80 backdrop-blur-sm border-border/50 hover:border-moon/30 transition-all duration-300 overflow-hidden group">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-moon via-aurora to-accent opacity-0 group-hover:opacity-100 transition-opacity" />
+          
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xl">{moonIcon}</span>
+                  <h3 className="font-semibold text-foreground truncate">{world.title}</h3>
+                </div>
+                {world.poetic_name && (
+                  <p className="text-sm text-muted-foreground italic truncate flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" />
+                    {world.poetic_name}
+                  </p>
+                )}
               </div>
-              {world.poetic_name && (
-                <p className="text-sm text-muted-foreground italic truncate flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" />
-                  {world.poetic_name}
-                </p>
-              )}
+              <div className="flex items-center gap-1">
+                {world.is_public ? (
+                  <Globe className="w-4 h-4 text-moon" />
+                ) : (
+                  <Lock className="w-4 h-4 text-muted-foreground" />
+                )}
+              </div>
             </div>
+          </CardHeader>
+
+          <CardContent className="pb-3">
+            {world.description && (
+              <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                {world.description}
+              </p>
+            )}
+            
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline" className={subjectColor}>
+                {world.subject}
+              </Badge>
+              <Badge 
+                variant="outline" 
+                className={world.status === "published" 
+                  ? "bg-green-500/20 text-green-400 border-green-500/30" 
+                  : "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
+                }
+              >
+                {world.status === "published" ? "Veröffentlicht" : "Entwurf"}
+              </Badge>
+            </div>
+          </CardContent>
+
+          <CardFooter className="flex items-center justify-between border-t border-border/30 pt-3">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Clock className="w-3 h-3" />
+              <span>{formatDate(world.updated_at)}</span>
+            </div>
+            
             <div className="flex items-center gap-1">
-              {world.is_public ? (
-                <Globe className="w-4 h-4 text-moon" />
-              ) : (
-                <Lock className="w-4 h-4 text-muted-foreground" />
-              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                onClick={() => onView(world.id)}
+                title="Ansehen"
+              >
+                <Eye className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-moon"
+                onClick={() => setShareDialogOpen(true)}
+                title="Teilen"
+              >
+                <Share2 className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-moon"
+                onClick={() => onEdit(world.id)}
+                title="Bearbeiten"
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                onClick={() => onDelete(world.id)}
+                title="Löschen"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
             </div>
-          </div>
-        </CardHeader>
+          </CardFooter>
+        </Card>
+      </motion.div>
 
-        <CardContent className="pb-3">
-          {world.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-              {world.description}
-            </p>
-          )}
-          
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className={subjectColor}>
-              {world.subject}
-            </Badge>
-            <Badge 
-              variant="outline" 
-              className={world.status === "published" 
-                ? "bg-green-500/20 text-green-400 border-green-500/30" 
-                : "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
-              }
-            >
-              {world.status === "published" ? "Veröffentlicht" : "Entwurf"}
-            </Badge>
-          </div>
-        </CardContent>
-
-        <CardFooter className="flex items-center justify-between border-t border-border/30 pt-3">
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Clock className="w-3 h-3" />
-            <span>{formatDate(world.updated_at)}</span>
-          </div>
-          
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-              onClick={() => onView(world.id)}
-            >
-              <Eye className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-moon"
-              onClick={() => onEdit(world.id)}
-            >
-              <Edit className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-              onClick={() => onDelete(world.id)}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          </div>
-        </CardFooter>
-      </Card>
-    </motion.div>
+      <ShareWorldDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        world={world}
+        onWorldUpdated={onWorldUpdated || (() => {})}
+      />
+    </>
   );
 };
