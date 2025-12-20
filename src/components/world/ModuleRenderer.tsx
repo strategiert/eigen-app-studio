@@ -89,16 +89,20 @@ interface ModuleRendererProps {
   module: Module;
   subjectColor: string;
   onComplete: (moduleId: string, score: number, maxScore: number) => void;
+  onContinue: () => void;
   isCompleted: boolean;
   previousScore?: number;
+  isLastModule?: boolean;
 }
 
 export function ModuleRenderer({
   module,
   subjectColor,
   onComplete,
+  onContinue,
   isCompleted,
-  previousScore
+  previousScore,
+  isLastModule = false
 }: ModuleRendererProps) {
   const [currentComponentIndex, setCurrentComponentIndex] = useState(0);
   const [componentScores, setComponentScores] = useState<Map<number, { score: number; maxScore: number }>>(new Map());
@@ -125,7 +129,7 @@ export function ModuleRenderer({
   const totalComponents = components.length;
   const completedComponents = componentScores.size;
 
-  // Handle component completion
+  // Handle component completion - NO auto-advance, let user control pace
   const handleComponentComplete = (score: number, maxScore: number) => {
     const newScores = new Map(componentScores);
     newScores.set(currentComponentIndex, { score, maxScore });
@@ -136,11 +140,16 @@ export function ModuleRenderer({
       const totalScore = Array.from(newScores.values()).reduce((sum, s) => sum + s.score, 0);
       const totalMaxScore = Array.from(newScores.values()).reduce((sum, s) => sum + s.maxScore, 0);
       onComplete(module.id, totalScore, totalMaxScore);
-    } else if (currentComponentIndex < totalComponents - 1) {
-      // Auto-advance to next component after a short delay
-      setTimeout(() => {
-        setCurrentComponentIndex(currentComponentIndex + 1);
-      }, 500);
+    }
+    // User navigates manually via "Weiter" button - no auto-advance
+  };
+
+  // Handle advancing to next component or module
+  const handleComponentContinue = () => {
+    if (currentComponentIndex < totalComponents - 1) {
+      setCurrentComponentIndex(currentComponentIndex + 1);
+    } else {
+      onContinue();
     }
   };
 
@@ -162,6 +171,7 @@ export function ModuleRenderer({
         );
 
       case 'quiz':
+        const isLastComponent = index === totalComponents - 1;
         const rawQuestions = (componentData.questions as Array<{
           question: string;
           options: string[];
@@ -182,8 +192,10 @@ export function ModuleRenderer({
             questions={questions}
             subjectColor={subjectColor}
             onComplete={(score, maxScore) => handleComponentComplete(score, maxScore)}
+            onContinue={handleComponentContinue}
             isCompleted={isComponentCompleted}
             previousScore={previousScore}
+            isLastModule={isLastModule && isLastComponent}
           />
         );
 

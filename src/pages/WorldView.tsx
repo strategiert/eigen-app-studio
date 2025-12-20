@@ -246,8 +246,10 @@ export default function WorldView() {
                 }}
                 subjectColor={theme?.color || 'hsl(var(--primary))'}
                 onComplete={handleModuleComplete}
+                onContinue={handleNext}
                 isCompleted={isSectionCompleted(currentModule.id)}
                 previousScore={progress.sections[currentModule.id]?.score}
+                isLastModule={currentModuleIndex === modules.length - 1}
               />
             </motion.div>
           </AnimatePresence>

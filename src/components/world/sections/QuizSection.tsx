@@ -17,8 +17,10 @@ interface QuizSectionProps {
   questions: QuizQuestion[];
   subjectColor: string;
   onComplete: (score: number, maxScore: number) => void;
+  onContinue?: () => void;
   isCompleted: boolean;
   previousScore?: number;
+  isLastModule?: boolean;
 }
 
 export function QuizSection({ 
@@ -26,8 +28,10 @@ export function QuizSection({
   questions, 
   subjectColor, 
   onComplete,
+  onContinue,
   isCompleted,
-  previousScore 
+  previousScore,
+  isLastModule = false
 }: QuizSectionProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -121,11 +125,12 @@ export function QuizSection({
               >
                 Nochmal versuchen
               </Button>
-              {isCompleted && (
+              {onContinue && (
                 <Button
+                  onClick={onContinue}
                   style={{ backgroundColor: subjectColor }}
                 >
-                  Weiter
+                  {isLastModule ? 'Lernwelt abschließen' : 'Weiter'}
                 </Button>
               )}
             </div>
