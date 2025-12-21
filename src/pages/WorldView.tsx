@@ -31,6 +31,7 @@ interface LearningWorld {
   status: string;
   creator_id: string;
   world_design: WorldDesign | null;
+  visual_theme: Json | null; // Legacy field that may contain visualIdentity data
 }
 
 interface LearningModule {
@@ -178,13 +179,57 @@ export default function WorldView() {
   };
 
   // Use AI-generated world design for all styling
+  // CRITICAL: Check both world_design AND visual_theme (legacy field)
   const worldDesign = useMemo(() => {
-    return world?.world_design || null;
-  }, [world?.world_design]);
+    if (!world) return null;
+
+    // If world_design exists and has visualIdentity, use it
+    if (world.world_design?.visualIdentity) {
+      return world.world_design;
+    }
+
+    // Fallback: If visual_theme exists but world_design doesn't have visualIdentity,
+    // construct a WorldDesign object from visual_theme
+    if (world.visual_theme) {
+      const visualTheme = world.visual_theme as Record<string, unknown>;
+      return {
+        worldConcept: world.world_design?.worldConcept || {
+          name: world.poetic_name || world.title,
+          tagline: world.description || '',
+          narrativeFrame: '',
+          atmosphere: ''
+        },
+        visualIdentity: visualTheme as any, // Use visual_theme as visualIdentity
+        moduleDesigns: world.world_design?.moduleDesigns || [],
+        heroImagePrompt: '',
+        imagery: { keyVisuals: [], colorMeaning: '' },
+        typography: { headingStyle: '', bodyStyle: '' }
+      } as WorldDesign;
+    }
+
+    return world.world_design || null;
+  }, [world]);
 
   const primaryColor = useMemo(() => {
-    return getWorldPrimaryColor(worldDesign);
-  }, [worldDesign]);
+    const color = getWorldPrimaryColor(worldDesign);
+
+    // DEBUG: Log design data to console
+    if (worldDesign?.visualIdentity) {
+      console.log('🎨 World Design Active:', {
+        primaryHue: worldDesign.visualIdentity.primaryHue,
+        saturation: worldDesign.visualIdentity.saturation,
+        accentHue: worldDesign.visualIdentity.accentHue,
+        mood: worldDesign.visualIdentity.mood,
+        era: worldDesign.visualIdentity.era,
+        computedColor: color,
+        source: world?.world_design?.visualIdentity ? 'world_design' : 'visual_theme'
+      });
+    } else {
+      console.log('⚠️ No world design found - using defaults');
+    }
+
+    return color;
+  }, [worldDesign, world]);
 
   const worldBackground = useMemo(() => {
     return getWorldGradient(worldDesign);
