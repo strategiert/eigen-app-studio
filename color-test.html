@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>World Color Test</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 20px;
+      background: #0a0a0a;
+      color: white;
+    }
+    .color-box {
+      width: 300px;
+      height: 150px;
+      border-radius: 12px;
+      margin: 20px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 18px;
+      border: 2px solid rgba(255,255,255,0.2);
+    }
+    .info {
+      font-size: 14px;
+      margin-top: 10px;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎨 World Color Test</h1>
+  <p>Dies zeigt die tatsächlichen Farben basierend auf den Datenbank-Werten:</p>
+
+  <h2>Die Römer (primaryHue: 45, saturation: 85%, lightness: 35%)</h2>
+  <div class="color-box" style="background-color: hsl(45, 85%, 35%);">
+    hsl(45, 85%, 35%)
+  </div>
+  <div class="info">
+    ⚠️ Dies ist SEHR DUNKEL - fast braun!<br>
+    Wenn du DAS siehst in der App → Farben funktionieren, sind nur dunkel.
+  </div>
+
+  <h2>Zum Vergleich: Helleres Gold (lightness: 55%)</h2>
+  <div class="color-box" style="background-color: hsl(45, 85%, 55%);">
+    hsl(45, 85%, 55%)
+  </div>
+  <div class="info">
+    ✨ Dies wäre besser sichtbar als Gold!
+  </div>
+
+  <h2>Das Sonnensystem (primaryHue: 260, saturation: 75%, lightness: 35%)</h2>
+  <div class="color-box" style="background-color: hsl(260, 75%, 35%);">
+    hsl(260, 75%, 35%)
+  </div>
+  <div class="info">
+    🟣 Dunkles Lila/Magenta - auch sehr dunkel!
+  </div>
+
+  <h2>Zum Vergleich: Helleres Lila (lightness: 55%)</h2>
+  <div class="color-box" style="background-color: hsl(260, 75%, 55%);">
+    hsl(260, 75%, 55%)
+  </div>
+  <div class="info">
+    ✨ Besser sichtbar!
+  </div>
+
+  <h2>Standard Blau (primaryHue: 220, saturation: 70%, lightness: 45%)</h2>
+  <div class="color-box" style="background-color: hsl(220, 70%, 45%);">
+    hsl(220, 70%, 45%)
+  </div>
+  <div class="info">
+    🔵 Dies ist das Standard-Blau (Fallback).<br>
+    Wenn du NUR diese Farbe siehst → Problem!
+  </div>
+
+  <hr style="margin: 40px 0; opacity: 0.3;">
+
+  <h2>🔍 Diagnose:</h2>
+  <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 8px;">
+    <p><strong>WENN die App-Farben aussehen wie hsl(45, 85%, 35%)</strong> (dunkles braun-gold):<br>
+    → ✅ Code funktioniert! Farben sind nur zu dunkel wegen lightness: 35%</p>
+
+    <p><strong>WENN die App-Farben aussehen wie hsl(220, 70%, 45%)</strong> (mittel-blau):<br>
+    → ❌ Code funktioniert NICHT! Nutzt Fallback-Werte</p>
+
+    <p><strong>Lösung für zu dunkle Farben</strong>:<br>
+    → Lightness von 35% auf 50-55% erhöhen in getWorldPrimaryColor()</p>
+  </div>
+
+  <script>
+    console.log('🎨 Farb-Test geladen');
+    console.log('Öffne diese HTML-Datei im Browser zum Vergleich mit der App!');
+  </script>
+</body>
+</html>
