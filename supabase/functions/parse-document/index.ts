@@ -59,8 +59,45 @@ serve(async (req) => {
 
     const { filePath, mimeType } = await req.json();
     
-    if (!filePath) {
-      throw new Error("No file path provided");
+    // ========== INPUT VALIDATION ==========
+    // Validate filePath
+    if (!filePath || typeof filePath !== 'string') {
+      return new Response(JSON.stringify({ error: 'File path is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Prevent path traversal attacks
+    if (filePath.includes('..') || filePath.includes('//')) {
+      console.error('Potential path traversal attempt:', { userId: user.id, filePath });
+      return new Response(JSON.stringify({ error: 'Invalid file path' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Limit file path length
+    if (filePath.length > 500) {
+      return new Response(JSON.stringify({ error: 'File path too long' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Validate mimeType if provided
+    const allowedMimeTypes = [
+      'application/pdf',
+      'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    ];
+    if (mimeType && !allowedMimeTypes.includes(mimeType)) {
+      return new Response(JSON.stringify({ error: 'Unsupported file type' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Validate that the file belongs to the requesting user
@@ -72,6 +109,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    // ========== END INPUT VALIDATION ==========
 
     console.log("Parsing document from path:", filePath, "MIME type:", mimeType);
 
