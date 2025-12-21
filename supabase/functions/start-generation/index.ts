@@ -125,34 +125,95 @@ Gib ein JSON-Objekt zurück mit:
     console.log("Phase 2: Designing world...");
     await updateStatus(supabase, worldId, 'designing');
     
-    const designPrompt = `Du bist ein Creative Director und gestaltest eine einzigartige visuelle Welt für eine Lernerfahrung.
+    const designPrompt = `Du bist ein Creative Director und gestaltest eine EINZIGARTIGE visuelle Welt für eine Lernerfahrung.
 
-Basierend auf der Inhaltsanalyse, erstelle ein einzigartiges visuelles Konzept das den Lerninhalt widerspiegelt.
+WICHTIG: Jede Lernwelt MUSS visuell KOMPLETT ANDERS aussehen! Alle Texte auf DEUTSCH!
 
-WICHTIG: Alle Texte (name, tagline, title, description) müssen auf DEUTSCH sein!
+Basierend auf Thema und Inhalt, wähle ein passendes Design:
+
+FACH-SPEZIFISCHE FARBEN (wähle passend zum Thema):
+- Mathematik: Blau/Cyan/Grün (logisch, strukturiert) → hsl(200, 70%, 50%)
+- Deutsch/Sprachen: Warme Töne Orange/Gelb → hsl(35, 75%, 55%)
+- Geschichte: Gold/Rot/Dunkelblau (königlich) → hsl(45, 80%, 50%) oder hsl(0, 70%, 45%)
+- Naturwissenschaften: Grün/Türkis (organisch) → hsl(160, 60%, 45%)
+- Kunst/Musik: Lila/Pink (kreativ) → hsl(280, 65%, 55%)
+- Sport: Dynamisches Rot/Orange → hsl(15, 80%, 50%)
+
+ERA (wähle basierend auf Zeitperiode des Inhalts):
+- ancient: Antike/Frühe Geschichte → Erdtöne, Braun, Beige
+- medieval: Mittelalter → Dunkelrot, Gold, tiefes Blau
+- renaissance: Renaissance → Elegante Farben, Grün, Purpur
+- modern: 20. Jahrhundert → Klare, kräftige Farben
+- contemporary: Heute → Helle, freundliche Farben
+- futuristic: Zukunft/Tech → Neon, Cyan, Lila
+
+MOOD (basierend auf Inhalt):
+- playful: Kinder, spielerisch → Helle, bunte Farben
+- serious: Wissenschaft, formal → Gedämpfte, professionelle Farben
+- mysterious: Entdeckung → Dunkle, geheimnisvolle Töne
+- epic: Große Ereignisse → Dramatische, intensive Farben
+- calm: Meditation, Natur → Sanfte, beruhigende Farben
+
+WICHTIG: Wähle PRIMARY/SECONDARY/ACCENT Farben die ZUSAMMEN PASSEN aber EINZIGARTIG für dieses Thema sind!
 
 Gib ein JSON-Objekt zurück mit:
 {
   "worldConcept": {
-    "name": "Ein poetischer/kreativer deutscher Name für diese Lernwelt",
-    "tagline": "Eine kurze, inspirierende deutsche Beschreibung",
-    "atmosphere": "Beschreibung der visuellen Atmosphäre (deutsch)"
+    "name": "Poetischer DEUTSCHER Name (passend zum Thema)",
+    "tagline": "Kurze deutsche Beschreibung",
+    "narrativeFrame": "Erzählerischer Kontext der Lernwelt (2-3 Sätze, deutsch)",
+    "atmosphere": "Visuelle Atmosphäre (deutsch)"
   },
-  "visualTheme": {
-    "primaryColor": "HSL Farbe als 'hsl(h, s%, l%)'",
-    "secondaryColor": "HSL Farbe",
-    "accentColor": "HSL Farbe",
-    "backgroundGradient": "CSS Gradient",
-    "styleHint": "Beschreibung des visuellen Stils für Bildgenerierung"
+  "visualIdentity": {
+    "era": "ancient/medieval/renaissance/modern/contemporary/futuristic",
+    "mood": "playful/serious/mysterious/epic/calm",
+    "primaryColor": "HSL Farbe als 'hsl(h, s%, l%)' - Hauptfarbe passend zum Fach",
+    "secondaryColor": "HSL Farbe - Komplementär zur Hauptfarbe",
+    "accentColor": "HSL Farbe - Kontrastfarbe für Highlights",
+    "gradient": "linear-gradient mit den gewählten Farben",
+    "pattern": "geometric/organic/abstract/dots/waves - passend zur Era",
+    "styleHint": "Detaillierte Beschreibung des visuellen Stils"
   },
-  "sections": [
+  "typography": {
+    "headingFont": "serif/sans-serif/display - passend zur Era",
+    "bodyFont": "serif/sans-serif - lesbar",
+    "headingWeight": 600-900,
+    "headingLetterSpacing": "-0.02em bis 0.1em",
+    "bodyLineHeight": "1.5 bis 1.8"
+  },
+  "moduleDesigns": [
     {
-      "title": "Abschnittstitel (deutsch)",
-      "type": "knowledge/practice/quiz",
-      "description": "Was dieser Abschnitt behandelt (deutsch)"
+      "title": "Modulname (deutsch)",
+      "moduleType": "discovery/knowledge/practice/reflection/challenge",
+      "imagePrompt": "Detaillierter deutscher Prompt für Modul-Bild",
+      "visualFocus": "Kurze Beschreibung des visuellen Fokus (deutsch)"
     }
   ]
-}`;
+}
+
+BEISPIEL für Mathematik (10-12 Jahre):
+{
+  "visualIdentity": {
+    "era": "contemporary",
+    "mood": "playful",
+    "primaryColor": "hsl(200, 70%, 50%)",  // Blau
+    "secondaryColor": "hsl(160, 60%, 45%)", // Grün
+    "accentColor": "hsl(280, 65%, 55%)"     // Lila
+  }
+}
+
+BEISPIEL für Französische Revolution:
+{
+  "visualIdentity": {
+    "era": "medieval",
+    "mood": "epic",
+    "primaryColor": "hsl(45, 80%, 50%)",   // Gold
+    "secondaryColor": "hsl(0, 70%, 45%)",  // Rot
+    "accentColor": "hsl(220, 60%, 40%)"    // Königsblau
+  }
+}
+
+Erstelle ein KOMPLETT EINZIGARTIGES Design für dieses spezifische Thema!`;
 
     const worldDesign = await callAI(designPrompt, `Title: ${title}\n\nContent Analysis:\n${JSON.stringify(contentAnalysis, null, 2)}`);
     console.log("World design complete:", worldDesign?.worldConcept?.name);
