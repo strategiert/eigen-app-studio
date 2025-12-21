@@ -299,6 +299,67 @@ ALLES AUF DEUTSCH!`;
     const generatedContent = await callAI(contentPrompt, `Titel: ${title}\nFach: ${subject}\n\nWelt-Design:\n${JSON.stringify(worldDesign, null, 2)}\n\nQuellinhalt:\n${sourceContent.substring(0, 10000)}`);
     console.log("Content generation complete with", generatedContent?.sections?.length, "sections");
 
+    // PHASE 3.5: Generate unique React component code
+    console.log("Phase 3.5: Generating unique React component code...");
+    await updateStatus(supabase, worldId, 'generating_component');
+
+    const componentPrompt = `Du bist ein Expert React Developer und Creative Designer.
+Deine Aufgabe: Erstelle eine KOMPLETT EINZIGARTIGE React-Seite für eine Lernwelt.
+
+# VERFÜGBARE SAFE COMPONENTS
+- Hero, Grid, Card, StorySection, Timeline, TimelineItem
+- Title, Subtitle, Paragraph, Icon, Badge, ProgressBar, ActionButton
+- FloatingElement, ParallaxSection
+
+# DESIGN FÜR: ${subject}
+${subject === 'Mathematik' ? '→ Grid-Layout, Blau/Cyan/Violett, Icons: star/target, Pattern: grid' : ''}
+${subject === 'Geschichte' ? '→ Timeline-Layout, Gold/Rot/Braun, Icons: globe/map, Pattern: waves' : ''}
+${subject === 'Naturwissenschaft' || subject === 'Biologie' ? '→ Organisch, Grün/Türkis, Icons: globe/lightbulb, Pattern: waves' : ''}
+
+WICHTIG:
+1. NUR Safe Components verwenden (keine imports!)
+2. Root Element: <> </>
+3. Deutsche Texte
+4. Fach-spezifische Farben (Tailwind: from-X-500 to-Y-600)
+5. Mindestens 3-5 Sections
+6. KOMPLETT EINZIGARTIG - kein Template!
+
+BEISPIEL-STRUKTUR (STARK VARIIEREN!):
+<>
+  <Hero gradient="from-purple-600 to-pink-600" pattern="dots">
+    <Title size="text-6xl" glow>{Titel}</Title>
+    <Subtitle>{Beschreibung}</Subtitle>
+  </Hero>
+  <Grid columns={3} gap={6}>
+    <Card hover><Icon name="star" size={48} /><h3>Kapitel</h3></Card>
+  </Grid>
+</>
+
+Generiere NUR JSX, keine \`\`\`, keine Erklärungen!`;
+
+    let generatedComponentCode: string | null = null;
+    try {
+      const componentResult = await callAI(componentPrompt, `Titel: ${title}\nFach: ${subject}\n\nWorld Design:\n${JSON.stringify(worldDesign?.worldConcept || {}, null, 2)}\n\nContent Summary:\n${generatedContent.description || ''}`);
+
+      if (componentResult && typeof componentResult === 'string') {
+        generatedComponentCode = componentResult.trim();
+        console.log("Component code generated, length:", generatedComponentCode.length);
+      } else if (componentResult && componentResult.code) {
+        generatedComponentCode = componentResult.code.trim();
+      }
+
+      // Clean up code if it has markdown code fences
+      if (generatedComponentCode && generatedComponentCode.includes('```')) {
+        generatedComponentCode = generatedComponentCode
+          .replace(/```jsx?\n?/g, '')
+          .replace(/```\n?/g, '')
+          .trim();
+      }
+    } catch (error) {
+      console.error("Component generation failed:", error);
+      // Continue without component code - will use fallback template
+    }
+
     // PHASE 4: Save to database
     console.log("Phase 4: Saving to database...");
     await updateStatus(supabase, worldId, 'finalizing');
@@ -312,6 +373,7 @@ ALLES AUF DEUTSCH!`;
         visual_theme: worldDesign?.visualIdentity || generatedContent.visualTheme || {},
         world_design: worldDesign || {},
         generated_code: JSON.stringify({ contentAnalysis, worldDesign, generatedContent }),
+        generated_component_code: generatedComponentCode, // NEW: AI-generated React component
         status: 'draft',
       })
       .eq('id', worldId);
