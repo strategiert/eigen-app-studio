@@ -7,6 +7,7 @@ export interface WorldConcept {
   name: string;
   tagline: string;
   narrativeFrame: string;
+  atmosphere?: string;
 }
 
 export interface VisualIdentity {

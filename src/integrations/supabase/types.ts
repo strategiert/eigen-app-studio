@@ -44,6 +44,30 @@ export type Database = {
         }
         Relationships: []
       }
+      function_rate_limits: {
+        Row: {
+          called_at: string | null
+          function_name: string
+          id: string
+          target_id: string | null
+          user_id: string
+        }
+        Insert: {
+          called_at?: string | null
+          function_name: string
+          id?: string
+          target_id?: string | null
+          user_id: string
+        }
+        Update: {
+          called_at?: string | null
+          function_name?: string
+          id?: string
+          target_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       learning_sections: {
         Row: {
           component_data: Json | null
@@ -409,6 +433,7 @@ export type Database = {
           max_limit: number
         }[]
       }
+      cleanup_rate_limits: { Args: never; Returns: undefined }
       get_follower_count: { Args: { user_uuid: string }; Returns: number }
       get_following_count: { Args: { user_uuid: string }; Returns: number }
       get_public_profile: {
