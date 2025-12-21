@@ -14,6 +14,7 @@ import { RatingWidget } from '@/components/ratings/RatingWidget';
 import { RatingDisplay } from '@/components/ratings/RatingDisplay';
 import { ForkWorldButton } from '@/components/world/ForkWorldButton';
 import { CreatorBadge } from '@/components/world/CreatorBadge';
+import { DynamicWorldRenderer } from '@/components/world/DynamicWorldRenderer';
 import { useWorldProgress } from '@/hooks/useWorldProgress';
 import { useAuth } from '@/hooks/useAuth';
 import type { WorldDesign } from '@/lib/worldDesignTypes';
@@ -32,6 +33,7 @@ interface LearningWorld {
   creator_id: string;
   world_design: WorldDesign | null;
   visual_theme: Json | null; // Legacy field that may contain visualIdentity data
+  generated_component_code: string | null; // AI-generated React component code
 }
 
 interface LearningModule {
@@ -343,30 +345,51 @@ export default function WorldView() {
     );
   }
 
-  // No modules state
-  if (modules.length === 0) {
+  // DYNAMIC RENDERING: If world has AI-generated component code, render it instead of template
+  if (world.generated_component_code && world.generated_component_code.trim().length > 0) {
+    console.log('🎨 Rendering AI-generated world component for:', world.title);
+
     return (
-      <div className="min-h-screen bg-background">
-        <DynamicWorldHeader
-          title={world.title}
-          poeticName={world.poetic_name}
-          worldDesign={worldDesign}
-          totalStars={0}
-          completedSections={0}
-          totalSections={0}
-        />
-        <div className="container mx-auto px-4 py-12 text-center">
-          <Sparkles className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-foreground mb-2">
-            Diese Lernwelt hat noch keine Inhalte
-          </h2>
-          <p className="text-muted-foreground">
-            Der Ersteller arbeitet noch daran.
-          </p>
-        </div>
-      </div>
+      <DynamicWorldRenderer
+        code={world.generated_component_code}
+        fallback={
+          // Fallback to template if dynamic rendering fails
+          renderTemplateWorld()
+        }
+        onError={(error) => {
+          console.error('Dynamic world rendering failed:', error);
+          // Could track this error in analytics
+        }}
+      />
     );
   }
+
+  // Helper function to render the template-based world (legacy/fallback)
+  function renderTemplateWorld() {
+    // No modules state
+    if (modules.length === 0) {
+      return (
+        <div className="min-h-screen bg-background">
+          <DynamicWorldHeader
+            title={world.title}
+            poeticName={world.poetic_name}
+            worldDesign={worldDesign}
+            totalStars={0}
+            completedSections={0}
+            totalSections={0}
+          />
+          <div className="container mx-auto px-4 py-12 text-center">
+            <Sparkles className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-foreground mb-2">
+              Diese Lernwelt hat noch keine Inhalte
+            </h2>
+            <p className="text-muted-foreground">
+              Der Ersteller arbeitet noch daran.
+            </p>
+          </div>
+        </div>
+      );
+    }
 
   return (
     <div 
@@ -574,4 +597,8 @@ export default function WorldView() {
       />
     </div>
   );
+  } // End of renderTemplateWorld()
+
+  // If no generated component code, render template world
+  return renderTemplateWorld();
 }

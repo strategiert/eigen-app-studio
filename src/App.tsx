@@ -18,6 +18,7 @@ import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import DynamicWorldTest from "./pages/DynamicWorldTest";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/test-dynamic-world" element={<DynamicWorldTest />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </TooltipProvider>
