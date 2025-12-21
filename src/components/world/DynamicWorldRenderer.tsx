@@ -5,12 +5,12 @@
  * Nur pre-approved Komponenten aus safeComponents sind verfügbar.
  */
 
-import { LiveProvider, LiveError, LivePreview } from 'react-live';
+import { LiveProvider, LiveError, LivePreview, LiveContext } from 'react-live';
 import { SafeComponentScope } from '@/lib/safeComponents';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useContext, useEffect } from 'react';
 
 interface DynamicWorldRendererProps {
   /**
@@ -27,6 +27,21 @@ interface DynamicWorldRendererProps {
    * Callback wenn Rendering fehlschlägt
    */
   onError?: (error: Error) => void;
+}
+
+/**
+ * Inner component that watches for errors from LiveContext
+ */
+function ErrorWatcher({ onError }: { onError: (error: string) => void }) {
+  const { error } = useContext(LiveContext);
+  
+  useEffect(() => {
+    if (error) {
+      onError(error);
+    }
+  }, [error, onError]);
+  
+  return null;
 }
 
 /**
@@ -109,8 +124,10 @@ export function DynamicWorldRenderer({
       code={code}
       scope={SafeComponentScope}
       noInline={false}
-      onError={handleError}
     >
+      {/* Error Watcher - detects errors from LiveContext */}
+      <ErrorWatcher onError={handleError} />
+      
       {/* Preview des AI-generierten Codes */}
       <LivePreview className="min-h-screen" />
 
