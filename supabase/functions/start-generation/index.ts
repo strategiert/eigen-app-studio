@@ -271,16 +271,12 @@ Jeder Abschnitt sollte einen dieser Komponententypen haben:
 - "fill-blanks": Lückentext-Übungen (verwende moduleType: "practice")
 - "matching": Zuordnungsübung (verwende moduleType: "practice")
 
+WICHTIG: Das visuelle Design wurde bereits in Phase 2 erstellt (worldDesign). Du musst KEIN neues visualTheme erstellen!
+
 Gib JSON zurück:
 {
-  "poeticName": "Kreativer deutscher Name für diese Welt",
+  "poeticName": "Kreativer deutscher Name für diese Welt (falls nicht im worldDesign)",
   "description": "Kurze Beschreibung auf Deutsch",
-  "visualTheme": {
-    "primaryColor": "hsl(...)",
-    "secondaryColor": "hsl(...)",
-    "accentColor": "hsl(...)",
-    "styleHint": "Visueller Stil für Bilder"
-  },
   "sections": [
     {
       "title": "Deutscher Abschnittstitel",
@@ -292,6 +288,8 @@ Gib JSON zurück:
     }
   ]
 }
+
+WICHTIG: Erstelle KEIN visualTheme - das kommt aus Phase 2!
 
 Erstelle 4-6 Abschnitte mit einer Mischung aus Erklärung und interaktiven Übungen.
 ALLES AUF DEUTSCH!`;
