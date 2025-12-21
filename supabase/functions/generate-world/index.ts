@@ -117,6 +117,60 @@ serve(async (req) => {
     console.log("Generate world request from user:", user.id);
 
     const { sourceContent, subject: providedSubject, title, worldId } = await req.json();
+    
+    // ========== INPUT VALIDATION ==========
+    // Validate title
+    if (!title || typeof title !== 'string') {
+      return new Response(JSON.stringify({ error: 'Title is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (title.length > 200) {
+      return new Response(JSON.stringify({ error: 'Title must be less than 200 characters' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Validate sourceContent
+    if (!sourceContent || typeof sourceContent !== 'string') {
+      return new Response(JSON.stringify({ error: 'Source content is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    // Limit content to 50,000 characters to prevent expensive AI calls
+    const MAX_CONTENT_LENGTH = 50000;
+    if (sourceContent.length > MAX_CONTENT_LENGTH) {
+      return new Response(JSON.stringify({ 
+        error: `Content too large. Maximum ${MAX_CONTENT_LENGTH} characters allowed.`,
+        currentLength: sourceContent.length 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Validate subject if provided
+    const validSubjects = ['mathematik', 'deutsch', 'englisch', 'biologie', 'physik', 'chemie', 
+                           'geschichte', 'geografie', 'kunst', 'musik', 'sport', 'informatik', 'allgemein'];
+    if (providedSubject && !validSubjects.includes(providedSubject)) {
+      return new Response(JSON.stringify({ error: 'Invalid subject provided' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Validate worldId format if provided
+    if (worldId && typeof worldId !== 'string') {
+      return new Response(JSON.stringify({ error: 'Invalid worldId format' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    // ========== END INPUT VALIDATION ==========
+    
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -125,11 +179,12 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Detect the actual subject from content
-    const detectedSubject = detectSubject(sourceContent, title);
+    // Detect the actual subject from content (use truncated content for detection)
+    const contentForDetection = sourceContent.substring(0, 5000);
+    const detectedSubject = detectSubject(contentForDetection, title);
     const actualSubject = providedSubject === 'allgemein' ? detectedSubject : providedSubject;
 
-    console.log("Generating learning world for:", { title, providedSubject, detectedSubject, actualSubject });
+    console.log("Generating learning world for:", { title, providedSubject, detectedSubject, actualSubject, contentLength: sourceContent.length });
 
 const systemPrompt = `Du bist ein erfahrener Pädagoge, Lerndesigner und didaktischer Story-Architekt
 für Kinder und Jugendliche zwischen 8 und 16 Jahren.

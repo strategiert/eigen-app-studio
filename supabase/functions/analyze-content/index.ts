@@ -56,17 +56,50 @@ serve(async (req) => {
     console.log("Analyze content request from user:", user.id);
 
     const { sourceContent, title } = await req.json();
+    
+    // ========== INPUT VALIDATION ==========
+    // Validate title
+    if (!title || typeof title !== 'string') {
+      return new Response(JSON.stringify({ error: 'Title is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (title.length > 200) {
+      return new Response(JSON.stringify({ error: 'Title must be less than 200 characters' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Validate sourceContent
+    if (!sourceContent || typeof sourceContent !== 'string') {
+      return new Response(JSON.stringify({ error: 'Source content is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Limit content to 50,000 characters to prevent expensive AI calls
+    const MAX_CONTENT_LENGTH = 50000;
+    if (sourceContent.length > MAX_CONTENT_LENGTH) {
+      return new Response(JSON.stringify({ 
+        error: `Content too large. Maximum ${MAX_CONTENT_LENGTH} characters allowed.`,
+        currentLength: sourceContent.length 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    // ========== END INPUT VALIDATION ==========
+    
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    if (!sourceContent || !title) {
-      throw new Error("Missing required fields: sourceContent and title");
-    }
-
-    console.log("Analyzing content for:", title);
+    console.log("Analyzing content for:", title, "- Content length:", sourceContent.length);
 
     const systemPrompt = `Du bist ein erfahrener Lerndesigner und Content-Analyst.
 

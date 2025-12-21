@@ -43,13 +43,60 @@ serve(async (req) => {
     }
 
     const { prompt, sectionId, worldId, subject } = await req.json();
+    
+    // ========== INPUT VALIDATION ==========
+    // Validate prompt
+    if (!prompt || typeof prompt !== 'string') {
+      return new Response(JSON.stringify({ error: 'Prompt is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Limit prompt length to prevent abuse
+    const MAX_PROMPT_LENGTH = 2000;
+    if (prompt.length > MAX_PROMPT_LENGTH) {
+      return new Response(JSON.stringify({ 
+        error: `Prompt too long. Maximum ${MAX_PROMPT_LENGTH} characters allowed.` 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Validate sectionId and worldId format if provided
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (sectionId && !uuidRegex.test(sectionId)) {
+      return new Response(JSON.stringify({ error: 'Invalid sectionId format' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (worldId && !uuidRegex.test(worldId)) {
+      return new Response(JSON.stringify({ error: 'Invalid worldId format' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Validate subject if provided
+    const validSubjects = ['mathematik', 'deutsch', 'englisch', 'biologie', 'physik', 'chemie', 
+                           'geschichte', 'geografie', 'kunst', 'musik', 'sport', 'informatik', 'allgemein'];
+    if (subject && !validSubjects.includes(subject)) {
+      return new Response(JSON.stringify({ error: 'Invalid subject' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    // ========== END INPUT VALIDATION ==========
+    
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log("Generating image for user:", user.id, "section:", sectionId, "world:", worldId);
+    console.log("Generating image for user:", user.id, "section:", sectionId, "world:", worldId, "prompt length:", prompt.length);
 
     // If worldId is provided, verify the user owns this world
     if (worldId) {
