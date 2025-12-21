@@ -98,7 +98,7 @@ async function runGeneration(
     console.log("Phase 1: Analyzing content...");
     await updateStatus(supabase, worldId, 'analyzing');
     
-    const analysisPrompt = `Analysiere diesen Lerninhalt und extrahiere wichtige Informationen für die Erstellung einer Lernerfahrung.
+    const analysisPrompt = `Analysiere diesen Lerninhalt und extrahiere wichtige Informationen für eine Lernerfahrung.
 
 WICHTIG: Alle Texte müssen auf DEUTSCH sein!
 
@@ -106,19 +106,19 @@ Gib ein JSON-Objekt zurück mit:
 {
   "theme": {
     "mainTopic": "Das zentrale Thema des Inhalts",
-    "keywords": ["Liste", "von", "Schlüsselbegriffen"],
+    "keywords": ["Liste", "wichtiger", "Begriffe"],
     "targetAge": "geschätzte Altersgruppe (z.B. '10-12')",
-    "difficulty": "beginner/intermediate/advanced"
+    "difficulty": "anfänger/fortgeschritten/experte"
   },
   "structure": {
-    "conceptCount": Anzahl der Hauptkonzepte,
-    "hasExamples": true/false,
-    "contentType": "theoretical/practical/mixed"
+    "conceptCount": "Anzahl der Hauptkonzepte (Zahl)",
+    "hasExamples": true,
+    "contentType": "theoretisch/praktisch/gemischt"
   },
-  "learningObjectives": ["was Schüler lernen werden"]
+  "learningObjectives": ["Was Schüler lernen werden"]
 }`;
 
-    const contentAnalysis = await callAI(analysisPrompt, `Title: ${title}\n\nContent:\n${sourceContent.substring(0, 8000)}`);
+    const contentAnalysis = await callAI(analysisPrompt, `Titel: ${title}\n\nInhalt:\n${sourceContent.substring(0, 8000)}`);
     console.log("Content analysis complete:", contentAnalysis?.theme?.mainTopic);
 
     // PHASE 2: Design World
@@ -155,6 +155,8 @@ MOOD (basierend auf Inhalt):
 - calm: Meditation, Natur → Sanfte, beruhigende Farben
 
 WICHTIG: Wähle PRIMARY/SECONDARY/ACCENT Farben die ZUSAMMEN PASSEN aber EINZIGARTIG für dieses Thema sind!
+
+Basierend auf der Content-Analyse erstelle ein einzigartiges visuelles Konzept, das zum Thema passt.
 
 Gib ein JSON-Objekt zurück mit:
 {
@@ -215,7 +217,7 @@ BEISPIEL für Französische Revolution:
 
 Erstelle ein KOMPLETT EINZIGARTIGES Design für dieses spezifische Thema!`;
 
-    const worldDesign = await callAI(designPrompt, `Title: ${title}\n\nContent Analysis:\n${JSON.stringify(contentAnalysis, null, 2)}`);
+    const worldDesign = await callAI(designPrompt, `Titel: ${title}\nFach: ${subject}\n\nContent-Analyse:\n${JSON.stringify(contentAnalysis, null, 2)}`);
     console.log("World design complete:", worldDesign?.worldConcept?.name);
 
     // PHASE 3: Generate Content
@@ -225,59 +227,62 @@ Erstelle ein KOMPLETT EINZIGARTIGES Design für dieses spezifische Thema!`;
     const contentPrompt = `Erstelle interaktive Lerninhalte mit mehreren Abschnitten.
 
 KRITISCH WICHTIG:
-- ALLE Texte (title, content, questions, options, explanations) müssen auf DEUTSCH sein!
+- ALLE Texte müssen auf DEUTSCH sein!
 - Verwende deutsche Fachbegriffe für das Unterrichtsfach
-- Bei Fremdsprachen (z.B. Englisch): Erkläre die Begriffe auf Deutsch, zeige dann englische Beispiele
+- Bei Fremdsprachen (z.B. Englisch): Erkläre die Begriffe auf Deutsch, zeige dann die fremdsprachigen Beispiele
+
+WICHTIG - Erlaubte moduleType Werte (NUR DIESE VERWENDEN):
+- "discovery": Einführung und Entdeckung neuer Konzepte
+- "knowledge": Wissensvermittlung und Erklärungen
+- "practice": Übungen und Anwendung
+- "reflection": Reflexion und Zusammenfassung
+- "challenge": Herausforderungen und Quiz
 
 Jeder Abschnitt sollte einen dieser Komponententypen haben:
-- "text": Erklärende Inhalte mit Markdown
-- "quiz": Multiple-Choice-Fragen
-- "fill-blanks": Lückentextübungen
-- "matching": Zuordnungsübung
+- "text": Erklärender Inhalt mit Markdown
+- "quiz": Multiple-Choice-Fragen (verwende moduleType: "challenge")
+- "fill-blanks": Lückentext-Übungen (verwende moduleType: "practice")
+- "matching": Zuordnungsübung (verwende moduleType: "practice")
 
 Gib JSON zurück:
 {
   "poeticName": "Kreativer deutscher Name für diese Welt",
-  "description": "Kurze deutsche Beschreibung",
+  "description": "Kurze Beschreibung auf Deutsch",
   "visualTheme": {
     "primaryColor": "hsl(...)",
     "secondaryColor": "hsl(...)",
     "accentColor": "hsl(...)",
-    "styleHint": "Beschreibung des visuellen Stils"
+    "styleHint": "Visueller Stil für Bilder"
   },
   "sections": [
     {
-      "title": "Abschnittstitel (DEUTSCH)",
-      "content": "Hauptinhalt (Markdown für Text-Abschnitte, DEUTSCH)",
-      "moduleType": "knowledge/practice",
+      "title": "Deutscher Abschnittstitel",
+      "content": "Hauptinhalt auf Deutsch (Markdown für Text-Abschnitte)",
+      "moduleType": "discovery|knowledge|practice|reflection|challenge",
       "componentType": "text/quiz/fill-blanks/matching",
-      "componentData": {
-        // Für quiz: { questions: [{ question: "Deutsche Frage?", options: ["Deutsche Option 1", "Deutsche Option 2"], correctIndex: 0, explanation: "Deutsche Erklärung" }] }
-        // Für fill-blanks: { sentences: [{ text: "Die ___ ist...", blanks: ["Antwort"] }] }
-        // Für matching: { pairs: [{ left: "Begriff", right: "Definition" }] }
-      },
-      "imagePrompt": "Detaillierter Prompt für die Bildgenerierung (deutsch)"
+      "componentData": {},
+      "imagePrompt": "Detaillierte Beschreibung für Illustration"
     }
   ]
 }
 
-Erstelle 4-6 Abschnitte mit einer Mischung aus Erklärungen und interaktiven Übungen. ALLES AUF DEUTSCH!`;
+Erstelle 4-6 Abschnitte mit einer Mischung aus Erklärung und interaktiven Übungen.
+ALLES AUF DEUTSCH!`;
 
-    const generatedContent = await callAI(contentPrompt, `Title: ${title}\nSubject: ${subject}\n\nWorld Design:\n${JSON.stringify(worldDesign, null, 2)}\n\nSource Content:\n${sourceContent.substring(0, 10000)}`);
+    const generatedContent = await callAI(contentPrompt, `Titel: ${title}\nFach: ${subject}\n\nWelt-Design:\n${JSON.stringify(worldDesign, null, 2)}\n\nQuellinhalt:\n${sourceContent.substring(0, 10000)}`);
     console.log("Content generation complete with", generatedContent?.sections?.length, "sections");
 
     // PHASE 4: Save to database
     console.log("Phase 4: Saving to database...");
     await updateStatus(supabase, worldId, 'finalizing');
 
-    // Update world with generated data
+    // Update world with generated data - USE worldDesign.visualIdentity for visual_theme
     const { error: worldUpdateError } = await supabase
       .from('learning_worlds')
       .update({
         poetic_name: generatedContent.poeticName || worldDesign?.worldConcept?.name || null,
         description: generatedContent.description || worldDesign?.worldConcept?.tagline || null,
-        // CRITICAL: Use AI-generated design from worldDesign, not generatedContent
-        visual_theme: worldDesign?.visualIdentity || {},
+        visual_theme: worldDesign?.visualIdentity || generatedContent.visualTheme || {},
         world_design: worldDesign || {},
         generated_code: JSON.stringify({ contentAnalysis, worldDesign, generatedContent }),
         status: 'draft',
@@ -289,25 +294,49 @@ Erstelle 4-6 Abschnitte mit einer Mischung aus Erklärungen und interaktiven Üb
     }
 
     // Create sections - ENFORCE design from worldDesign.moduleDesigns
+    // Valid module types according to DB constraint
+    const validModuleTypes = ['discovery', 'knowledge', 'practice', 'reflection', 'challenge'];
+    
+    // Map common AI-generated types to valid types
+    const moduleTypeMap: Record<string, string> = {
+      'quiz': 'challenge',
+      'test': 'challenge',
+      'exercise': 'practice',
+      'übung': 'practice',
+      'intro': 'discovery',
+      'introduction': 'discovery',
+      'einführung': 'discovery',
+      'summary': 'reflection',
+      'zusammenfassung': 'reflection',
+      'learn': 'knowledge',
+      'lernen': 'knowledge',
+    };
+    
     if (generatedContent.sections && generatedContent.sections.length > 0) {
       const sections = generatedContent.sections.map((section: any, index: number) => {
-        // Find matching design from worldDesign (by index or title match)
+        // Versuche passendes Design aus worldDesign.moduleDesigns zu finden
         const matchingDesign = worldDesign?.moduleDesigns?.[index] ||
           worldDesign?.moduleDesigns?.find((d: any) =>
-            d.title.toLowerCase().includes(section.title.toLowerCase()) ||
-            section.title.toLowerCase().includes(d.title.toLowerCase())
+            d.title?.toLowerCase().includes(section.title?.toLowerCase()) ||
+            section.title?.toLowerCase().includes(d.title?.toLowerCase())
           );
+
+        // Get module type with fallback and validation
+        let rawModuleType = matchingDesign?.moduleType || section.moduleType || "knowledge";
+        rawModuleType = rawModuleType.toLowerCase();
+        
+        // Map to valid type or use as-is if valid
+        let finalModuleType = validModuleTypes.includes(rawModuleType) 
+          ? rawModuleType 
+          : (moduleTypeMap[rawModuleType] || "knowledge");
 
         return {
           world_id: worldId,
-          // FORCE title from worldDesign if available
           title: matchingDesign?.title || section.title,
           content: section.content,
-          // FORCE moduleType from worldDesign
-          module_type: matchingDesign?.moduleType || section.moduleType || "knowledge",
+          module_type: finalModuleType,
           component_type: section.componentType || "text",
           component_data: section.componentData || {},
-          // FORCE imagePrompt from worldDesign
           image_prompt: matchingDesign?.imagePrompt || section.imagePrompt || null,
           order_index: index,
         };
@@ -326,6 +355,9 @@ Erstelle 4-6 Abschnitte mit einer Mischung aus Erklärungen und interaktiven Üb
         // PHASE 5: Generate images
         console.log("Phase 5: Generating images...");
         await updateStatus(supabase, worldId, 'images');
+
+        // Get visual style from worldDesign
+        const visualStyle = worldDesign?.visualIdentity?.styleHint || generatedContent.visualTheme?.styleHint || 'freundlich, farbenfroh, lehrreich';
 
         // Generate images for first 3 sections
         const sectionsToGenerate = (createdSections || []).slice(0, 3);
@@ -347,7 +379,7 @@ Erstelle 4-6 Abschnitte mit einer Mischung aus Erklärungen und interaktiven Üb
                   messages: [
                     {
                       role: "user",
-                      content: `Generate an educational illustration: ${section.image_prompt}. Style: ${generatedContent.visualTheme?.styleHint || 'friendly, colorful, educational'}. Clean, simple, age-appropriate for children.`
+                      content: `Erstelle eine lehrreiche Illustration: ${section.image_prompt}. Stil: ${visualStyle}. Klar, einfach, altersgerecht für Kinder.`
                     }
                   ],
                   modalities: ["image", "text"]
