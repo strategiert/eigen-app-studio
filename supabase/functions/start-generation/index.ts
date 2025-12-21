@@ -162,62 +162,52 @@ PATTERN STYLE (visuelles Muster):
 - historical: Historische Ornamente (Geschichte)
 - scientific: Wissenschaftliche Diagramme (MINT-Fächer)
 
-KRITISCH - Du MUSST dieses EXAKTE JSON-Format zurückgeben:
+KRITISCH - Du MUSST dieses EXAKTE JSON-Format zurückgeben.
+KOPIERE NICHT DIE BEISPIELWERTE! Wähle eigene Werte basierend auf dem tatsächlichen Thema!
+
+JSON-STRUKTUR:
 {
   "worldConcept": {
-    "name": "Poetischer DEUTSCHER Name (passend zum Thema)",
+    "name": "Einzigartiger poetischer DEUTSCHER Name",
     "tagline": "Kurze deutsche Beschreibung",
-    "narrativeFrame": "Erzählerischer Kontext der Lernwelt (2-3 Sätze, deutsch)",
-    "atmosphere": "Visuelle Atmosphäre in 2-3 Worten (deutsch, z.B. 'Mystisch und rätselhaft', 'Fröhlich und bunt')"
+    "narrativeFrame": "Erzählerischer Kontext (2-3 Sätze, deutsch)",
+    "atmosphere": "Atmosphäre in 2-3 Worten (deutsch)"
   },
   "visualIdentity": {
-    "primaryHue": 210,
-    "saturation": 70,
-    "accentHue": 280,
-    "mood": "warm",
-    "era": "modern",
-    "patternStyle": "geometric",
-    "styleHint": "Detaillierte Beschreibung des visuellen Stils (deutsch)"
+    "primaryHue": [WÄHLE PASSEND ZUM FACH - SIEHE OBEN],
+    "saturation": [WÄHLE 40-90],
+    "accentHue": [WÄHLE KOMPLEMENTÄR ZU primaryHue],
+    "mood": "[WÄHLE PASSEND: warm|cool|mystical|playful|serious|natural]",
+    "era": "[WÄHLE PASSEND: ancient|medieval|renaissance|modern|futuristic|timeless]",
+    "patternStyle": "[WÄHLE PASSEND: geometric|organic|abstract|historical|scientific]",
+    "styleHint": "Beschreibung des visuellen Stils (deutsch)"
   },
   "typography": {
-    "headingFont": "serif/sans-serif/display - passend zur Era",
-    "bodyFont": "serif/sans-serif - lesbar",
-    "headingWeight": 600-900,
-    "headingLetterSpacing": "-0.02em bis 0.1em",
-    "bodyLineHeight": "1.5 bis 1.8"
+    "headingFont": "serif ODER sans-serif ODER display",
+    "bodyFont": "serif ODER sans-serif",
+    "headingWeight": [600-900],
+    "headingLetterSpacing": "[z.B. -0.02em oder 0.05em]",
+    "bodyLineHeight": "[1.5 bis 1.8]"
   },
-  "moduleDesigns": [
-    {
-      "title": "Modulname (deutsch)",
-      "moduleType": "discovery/knowledge/practice/reflection/challenge",
-      "imagePrompt": "Detaillierter deutscher Prompt für Modul-Bild",
-      "visualFocus": "Kurze Beschreibung des visuellen Fokus (deutsch)"
-    }
-  ]
+  "moduleDesigns": [...]
 }
 
-WICHTIG - FORMAT-REGELN:
-- primaryHue: NUMMER 0-360 (NICHT String "hsl(...)")
-- saturation: NUMMER 40-90 (NICHT String)
-- accentHue: NUMMER 0-360 (NICHT String)
-- mood: MUSS GENAU EINER SEIN: warm | cool | mystical | playful | serious | natural
-- era: MUSS GENAU EINER SEIN: ancient | medieval | renaissance | modern | futuristic | timeless
-- patternStyle: MUSS GENAU EINER SEIN: geometric | organic | abstract | historical | scientific
+FORMAT-REGELN:
+- primaryHue: NUMMER 0-360 (z.B. 45 für Gold, 160 für Grün, 280 für Lila)
+- saturation: NUMMER 40-90
+- accentHue: NUMMER 0-360 (z.B. primaryHue + 120 für Komplementärfarbe)
+- ALLE WERTE MÜSSEN ZUM THEMA PASSEN!
 
-BEISPIEL für Mathematik (10-12 Jahre):
-{
-  "worldConcept": {
-    "name": "Die Zahlenwelt der Logik",
-    "tagline": "Entdecke die Magie der Mathematik",
-    "narrativeFrame": "Tauche ein in eine Welt voller Zahlen, Formen und logischer Rätsel.",
-    "atmosphere": "Strukturiert und farbenfroh"
-  },
-  "visualIdentity": {
-    "primaryHue": 200,
-    "saturation": 70,
-    "accentHue": 280,
-    "mood": "playful",
-    "era": "modern",
+BEISPIELE FÜR VERSCHIEDENE FÄCHER:
+
+Geschichte/Pyramiden → primaryHue: 45 (Gold), mood: mystical, era: ancient, patternStyle: historical
+Biologie/Pflanzen → primaryHue: 140 (Grün), mood: natural, era: timeless, patternStyle: organic
+Physik/Weltraum → primaryHue: 260 (Lila), mood: cool, era: futuristic, patternStyle: scientific
+Musik → primaryHue: 300 (Pink), mood: playful, era: modern, patternStyle: abstract
+Sport → primaryHue: 15 (Rot/Orange), mood: warm, era: modern, patternStyle: geometric
+Deutsch/Literatur → primaryHue: 35 (Orange), mood: warm, era: renaissance, patternStyle: organic
+
+Analysiere das Thema "${title}" und wähle PASSENDE Werte!
     "patternStyle": "geometric",
     "styleHint": "Klare geometrische Formen mit kräftigen Blau- und Lilatönen"
   }
