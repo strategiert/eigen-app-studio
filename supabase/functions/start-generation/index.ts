@@ -132,49 +132,52 @@ WICHTIG: Jede Lernwelt MUSS visuell KOMPLETT ANDERS aussehen! Alle Texte auf DEU
 Basierend auf Thema und Inhalt, wähle ein passendes Design:
 
 FACH-SPEZIFISCHE FARBEN (wähle passend zum Thema):
-- Mathematik: Blau/Cyan/Grün (logisch, strukturiert) → hsl(200, 70%, 50%)
-- Deutsch/Sprachen: Warme Töne Orange/Gelb → hsl(35, 75%, 55%)
-- Geschichte: Gold/Rot/Dunkelblau (königlich) → hsl(45, 80%, 50%) oder hsl(0, 70%, 45%)
-- Naturwissenschaften: Grün/Türkis (organisch) → hsl(160, 60%, 45%)
-- Kunst/Musik: Lila/Pink (kreativ) → hsl(280, 65%, 55%)
-- Sport: Dynamisches Rot/Orange → hsl(15, 80%, 50%)
+- Mathematik: Blau/Cyan/Grün (logisch, strukturiert) → primaryHue: 200, saturation: 70
+- Deutsch/Sprachen: Warme Töne Orange/Gelb → primaryHue: 35, saturation: 75
+- Geschichte: Gold/Rot/Dunkelblau (königlich) → primaryHue: 45, saturation: 80 ODER primaryHue: 0, saturation: 70
+- Naturwissenschaften: Grün/Türkis (organisch) → primaryHue: 160, saturation: 60
+- Kunst/Musik: Lila/Pink (kreativ) → primaryHue: 280, saturation: 65
+- Sport: Dynamisches Rot/Orange → primaryHue: 15, saturation: 80
 
 ERA (wähle basierend auf Zeitperiode des Inhalts):
 - ancient: Antike/Frühe Geschichte → Erdtöne, Braun, Beige
 - medieval: Mittelalter → Dunkelrot, Gold, tiefes Blau
 - renaissance: Renaissance → Elegante Farben, Grün, Purpur
 - modern: 20. Jahrhundert → Klare, kräftige Farben
-- contemporary: Heute → Helle, freundliche Farben
 - futuristic: Zukunft/Tech → Neon, Cyan, Lila
+- timeless: Zeitlos, universell
 
 MOOD (basierend auf Inhalt):
 - playful: Kinder, spielerisch → Helle, bunte Farben
 - serious: Wissenschaft, formal → Gedämpfte, professionelle Farben
-- mysterious: Entdeckung → Dunkle, geheimnisvolle Töne
-- epic: Große Ereignisse → Dramatische, intensive Farben
-- calm: Meditation, Natur → Sanfte, beruhigende Farben
+- mystical: Entdeckung, Geheimnisvoll → Dunkle, geheimnisvolle Töne
+- warm: Einladend, freundlich → Warme Farbtöne
+- cool: Ruhig, fokussiert → Kühle Farbtöne
+- natural: Organisch, natürlich → Erdtöne
 
-WICHTIG: Wähle PRIMARY/SECONDARY/ACCENT Farben die ZUSAMMEN PASSEN aber EINZIGARTIG für dieses Thema sind!
+PATTERN STYLE (visuelles Muster):
+- geometric: Geometrische Formen (modern, strukturiert)
+- organic: Organische, fließende Formen (natürlich)
+- abstract: Abstrakte Kunst (kreativ)
+- historical: Historische Ornamente (Geschichte)
+- scientific: Wissenschaftliche Diagramme (MINT-Fächer)
 
-Basierend auf der Content-Analyse erstelle ein einzigartiges visuelles Konzept, das zum Thema passt.
-
-Gib ein JSON-Objekt zurück mit:
+KRITISCH - Du MUSST dieses EXAKTE JSON-Format zurückgeben:
 {
   "worldConcept": {
     "name": "Poetischer DEUTSCHER Name (passend zum Thema)",
     "tagline": "Kurze deutsche Beschreibung",
     "narrativeFrame": "Erzählerischer Kontext der Lernwelt (2-3 Sätze, deutsch)",
-    "atmosphere": "Visuelle Atmosphäre (deutsch)"
+    "atmosphere": "Visuelle Atmosphäre in 2-3 Worten (deutsch, z.B. 'Mystisch und rätselhaft', 'Fröhlich und bunt')"
   },
   "visualIdentity": {
-    "era": "ancient/medieval/renaissance/modern/contemporary/futuristic",
-    "mood": "playful/serious/mysterious/epic/calm",
-    "primaryColor": "HSL Farbe als 'hsl(h, s%, l%)' - Hauptfarbe passend zum Fach",
-    "secondaryColor": "HSL Farbe - Komplementär zur Hauptfarbe",
-    "accentColor": "HSL Farbe - Kontrastfarbe für Highlights",
-    "gradient": "linear-gradient mit den gewählten Farben",
-    "pattern": "geometric/organic/abstract/dots/waves - passend zur Era",
-    "styleHint": "Detaillierte Beschreibung des visuellen Stils"
+    "primaryHue": 210,
+    "saturation": 70,
+    "accentHue": 280,
+    "mood": "warm",
+    "era": "modern",
+    "patternStyle": "geometric",
+    "styleHint": "Detaillierte Beschreibung des visuellen Stils (deutsch)"
   },
   "typography": {
     "headingFont": "serif/sans-serif/display - passend zur Era",
@@ -193,25 +196,49 @@ Gib ein JSON-Objekt zurück mit:
   ]
 }
 
+WICHTIG - FORMAT-REGELN:
+- primaryHue: NUMMER 0-360 (NICHT String "hsl(...)")
+- saturation: NUMMER 40-90 (NICHT String)
+- accentHue: NUMMER 0-360 (NICHT String)
+- mood: MUSS GENAU EINER SEIN: warm | cool | mystical | playful | serious | natural
+- era: MUSS GENAU EINER SEIN: ancient | medieval | renaissance | modern | futuristic | timeless
+- patternStyle: MUSS GENAU EINER SEIN: geometric | organic | abstract | historical | scientific
+
 BEISPIEL für Mathematik (10-12 Jahre):
 {
+  "worldConcept": {
+    "name": "Die Zahlenwelt der Logik",
+    "tagline": "Entdecke die Magie der Mathematik",
+    "narrativeFrame": "Tauche ein in eine Welt voller Zahlen, Formen und logischer Rätsel.",
+    "atmosphere": "Strukturiert und farbenfroh"
+  },
   "visualIdentity": {
-    "era": "contemporary",
+    "primaryHue": 200,
+    "saturation": 70,
+    "accentHue": 280,
     "mood": "playful",
-    "primaryColor": "hsl(200, 70%, 50%)",  // Blau
-    "secondaryColor": "hsl(160, 60%, 45%)", // Grün
-    "accentColor": "hsl(280, 65%, 55%)"     // Lila
+    "era": "modern",
+    "patternStyle": "geometric",
+    "styleHint": "Klare geometrische Formen mit kräftigen Blau- und Lilatönen"
   }
 }
 
 BEISPIEL für Französische Revolution:
 {
+  "worldConcept": {
+    "name": "Das Zeitalter des Umbruchs",
+    "tagline": "Die Revolution verändert Frankreich",
+    "narrativeFrame": "Erlebe die dramatischen Ereignisse der Französischen Revolution.",
+    "atmosphere": "Dramatisch und historisch"
+  },
   "visualIdentity": {
+    "primaryHue": 45,
+    "saturation": 80,
+    "accentHue": 0,
+    "mood": "serious",
     "era": "medieval",
-    "mood": "epic",
-    "primaryColor": "hsl(45, 80%, 50%)",   // Gold
-    "secondaryColor": "hsl(0, 70%, 45%)",  // Rot
-    "accentColor": "hsl(220, 60%, 40%)"    // Königsblau
+    "patternStyle": "historical",
+    "styleHint": "Königliche Gold- und Rottöne mit historischen Ornamenten"
   }
 }
 

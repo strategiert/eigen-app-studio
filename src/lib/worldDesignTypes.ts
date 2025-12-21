@@ -41,22 +41,66 @@ export interface WorldDesign {
   };
 }
 
-// Helper to safely extract numeric color values from design
+/**
+ * Parse hue value from legacy HSL string format
+ * Example: "hsl(210, 60%, 40%)" -> 210
+ */
+function parseHueFromHSL(hslString: string | undefined): number | null {
+  if (!hslString || typeof hslString !== 'string') return null;
+  const match = hslString.match(/hsl\(\s*(\d+)/);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+/**
+ * Parse saturation from legacy HSL string format
+ * Example: "hsl(210, 60%, 40%)" -> 60
+ */
+function parseSaturationFromHSL(hslString: string | undefined): number | null {
+  if (!hslString || typeof hslString !== 'string') return null;
+  const match = hslString.match(/hsl\(\s*\d+\s*,\s*(\d+)/);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+/**
+ * Get safe color values from world design, with fallback for legacy string format
+ */
 function safeColorValues(design: WorldDesign | null): {
   primaryHue: number;
   saturation: number;
   accentHue: number;
-  mood: string;
-  era: string;
-  patternStyle: string;
+  mood: 'warm' | 'cool' | 'mystical' | 'playful' | 'serious' | 'natural';
+  era: 'ancient' | 'medieval' | 'renaissance' | 'modern' | 'futuristic' | 'timeless';
+  patternStyle: 'geometric' | 'organic' | 'abstract' | 'historical' | 'scientific';
 } {
-  const vi = design?.visualIdentity;
+  const vi = design?.visualIdentity as any;
+
+  // Try primaryHue directly, fallback to parsing primaryColor string
+  let primaryHue = typeof vi?.primaryHue === 'number' ? vi.primaryHue : null;
+  if (primaryHue === null && vi?.primaryColor) {
+    primaryHue = parseHueFromHSL(vi.primaryColor);
+  }
+  primaryHue = primaryHue ?? 220;
+
+  // Try saturation directly, fallback to parsing from primaryColor string
+  let saturation = typeof vi?.saturation === 'number' ? vi.saturation : null;
+  if (saturation === null && vi?.primaryColor) {
+    saturation = parseSaturationFromHSL(vi.primaryColor);
+  }
+  saturation = saturation ?? 70;
+
+  // Try accentHue directly, fallback to parsing accentColor string
+  let accentHue = typeof vi?.accentHue === 'number' ? vi.accentHue : null;
+  if (accentHue === null && vi?.accentColor) {
+    accentHue = parseHueFromHSL(vi.accentColor);
+  }
+  accentHue = accentHue ?? 280;
+
   return {
-    primaryHue: typeof vi?.primaryHue === 'number' ? vi.primaryHue : 220,
-    saturation: typeof vi?.saturation === 'number' ? vi.saturation : 70,
-    accentHue: typeof vi?.accentHue === 'number' ? vi.accentHue : 280,
+    primaryHue,
+    saturation,
+    accentHue,
     mood: vi?.mood || 'playful',
-    era: vi?.era || 'modern',
+    era: vi?.era || 'timeless',
     patternStyle: vi?.patternStyle || 'geometric',
   };
 }
@@ -68,13 +112,13 @@ export function getWorldCSSVariables(design: WorldDesign | null): React.CSSPrope
   if (!design?.visualIdentity) {
     return {};
   }
-  
+
   const { primaryHue, saturation, accentHue, mood } = safeColorValues(design);
-  
+
   // Mood-based lightness adjustments
   const baseLightness = mood === 'mystical' ? 35 : mood === 'serious' ? 40 : 45;
   const accentLightness = mood === 'playful' ? 55 : 50;
-  
+
   return {
     '--world-primary': `hsl(${primaryHue}, ${saturation}%, ${baseLightness}%)`,
     '--world-primary-light': `hsl(${primaryHue}, ${saturation}%, ${baseLightness + 15}%)`,
@@ -115,18 +159,18 @@ export function getWorldGradient(design: WorldDesign | null): string {
   if (!design?.visualIdentity) {
     return 'linear-gradient(135deg, hsl(var(--background)), hsl(var(--muted)))';
   }
-  
+
   const { primaryHue, saturation, accentHue, mood, era } = safeColorValues(design);
-  
+
   // Era-based gradient angles
   const angle = era === 'ancient' ? 180 : era === 'futuristic' ? 135 : 160;
-  
+
   // Mood-based lightness
   const startLightness = mood === 'mystical' ? 8 : mood === 'serious' ? 10 : 12;
   const endLightness = mood === 'mystical' ? 15 : mood === 'serious' ? 18 : 20;
-  
-  return `linear-gradient(${angle}deg, 
-    hsl(${primaryHue}, ${saturation * 0.3}%, ${startLightness}%), 
+
+  return `linear-gradient(${angle}deg,
+    hsl(${primaryHue}, ${saturation * 0.3}%, ${startLightness}%),
     hsl(${accentHue}, ${saturation * 0.2}%, ${endLightness}%))`;
 }
 
@@ -200,9 +244,7 @@ export function getWorldTypographyStyles(design: WorldDesign | null): {
     return defaults;
   }
 
-  // Safely extract era and mood with fallbacks
-  const era = design.visualIdentity.era || 'timeless';
-  const mood = design.visualIdentity.mood || 'playful';
+  const { era, mood } = safeColorValues(design);
 
   // Era-based font families
   const eraFonts: Record<string, { heading: string; body: string }> = {
