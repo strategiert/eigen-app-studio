@@ -85,6 +85,35 @@ async function callAI(systemPrompt: string, userPrompt: string, model = "google/
   return JSON.parse(jsonContent);
 }
 
+// Call AI API for RAW output (no JSON formatting) - used for JSX/code generation
+async function callAIRaw(systemPrompt: string, userPrompt: string, model = "google/gemini-2.5-flash"): Promise<string | null> {
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${lovableApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      // NO response_format - allows free text/JSX output
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`AI API error: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+
+  return content || null; // Return raw text
+}
+
 // Background generation process
 async function runGeneration(
   supabase: SupabaseClient,
@@ -339,24 +368,29 @@ Generiere NUR JSX, keine \`\`\`, keine Erklärungen!`;
 
     let generatedComponentCode: string | null = null;
     try {
-      const componentResult = await callAI(componentPrompt, `Titel: ${title}\nFach: ${subject}\n\nWorld Design:\n${JSON.stringify(worldDesign?.worldConcept || {}, null, 2)}\n\nContent Summary:\n${generatedContent.description || ''}`);
+      // Use callAIRaw for JSX generation (no JSON formatting)
+      const componentRaw = await callAIRaw(componentPrompt, `Titel: ${title}\nFach: ${subject}\n\nWorld Design:\n${JSON.stringify(worldDesign?.worldConcept || {}, null, 2)}\n\nContent Summary:\n${generatedContent.description || ''}`);
 
-      if (componentResult && typeof componentResult === 'string') {
-        generatedComponentCode = componentResult.trim();
-        console.log("Component code generated, length:", generatedComponentCode.length);
-      } else if (componentResult && componentResult.code) {
-        generatedComponentCode = componentResult.code.trim();
-      }
+      console.log("Component generation raw result type:", typeof componentRaw);
 
-      // Clean up code if it has markdown code fences
-      if (generatedComponentCode && generatedComponentCode.includes('```')) {
-        generatedComponentCode = generatedComponentCode
-          .replace(/```jsx?\n?/g, '')
-          .replace(/```\n?/g, '')
-          .trim();
+      if (componentRaw && typeof componentRaw === 'string') {
+        generatedComponentCode = componentRaw.trim();
+
+        // Clean up code if it has markdown code fences
+        if (generatedComponentCode.includes('```')) {
+          generatedComponentCode = generatedComponentCode
+            .replace(/```jsx?\n?/g, '')
+            .replace(/```\n?/g, '')
+            .trim();
+        }
+
+        console.log("✅ Component code generated successfully, length:", generatedComponentCode.length);
+        console.log("Component code preview:", generatedComponentCode.substring(0, 150));
+      } else {
+        console.error("❌ Component generation returned non-string:", typeof componentRaw);
       }
     } catch (error) {
-      console.error("Component generation failed:", error);
+      console.error("❌ Component generation failed:", error);
       // Continue without component code - will use fallback template
     }
 
