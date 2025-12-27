@@ -15,6 +15,7 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
+const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
 
 interface GenerationRequest {
   title: string;
@@ -114,6 +115,47 @@ async function callAIRaw(systemPrompt: string, userPrompt: string, model = "goog
   return content || null; // Return raw text
 }
 
+// Call Perplexity API for research (current, factual information)
+async function callPerplexity(query: string, subject: string): Promise<string | null> {
+  if (!perplexityApiKey) {
+    console.log("⚠️ Perplexity API key not configured, skipping research phase");
+    return null;
+  }
+
+  try {
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${perplexityApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'sonar',
+        messages: [
+          {
+            role: 'system',
+            content: `Du bist ein Bildungsexperte für ${subject}. Recherchiere fundierte, altersgerechte Informationen auf Deutsch. Fokussiere auf Fakten, interessante Details und Beispiele, die für Schüler spannend sind.`
+          },
+          { role: 'user', content: query }
+        ],
+        search_recency_filter: 'year', // Aktuelle Infos der letzten 12 Monate
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Perplexity API error: ${response.status} - ${errorText}`);
+      return null;
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || null;
+  } catch (error) {
+    console.error("Perplexity API call failed:", error);
+    return null; // Graceful fallback
+  }
+}
+
 // Background generation process
 async function runGeneration(
   supabase: SupabaseClient,
@@ -123,6 +165,20 @@ async function runGeneration(
   subject: string
 ) {
   try {
+    // PHASE 0.5: Research with Perplexity (NEW!)
+    console.log("Phase 0.5: Researching topic with Perplexity...");
+    await updateStatus(supabase, worldId, 'researching');
+
+    const researchQuery = `Erkläre das Thema "${title}" für Schüler im Fach ${subject}:
+- Was sind die wichtigsten Fakten?
+- Welche interessanten Details gibt es?
+- Welche aktuellen Beispiele oder Anwendungen sind relevant?
+- Welche häufigen Missverständnisse gibt es?
+Halte die Erklärung altersgerecht und spannend.`;
+
+    const researchResult = await callPerplexity(researchQuery, subject);
+    console.log("Research complete:", researchResult ? `Found ${researchResult.length} characters` : "No results (fallback to normal generation)");
+
     // PHASE 1: Analyze Content
     console.log("Phase 1: Analyzing content...");
     await updateStatus(supabase, worldId, 'analyzing');
@@ -147,7 +203,12 @@ Gib ein JSON-Objekt zurück mit:
   "learningObjectives": ["Was Schüler lernen werden"]
 }`;
 
-    const contentAnalysis = await callAI(analysisPrompt, `Titel: ${title}\n\nInhalt:\n${sourceContent.substring(0, 8000)}`);
+    const contentAnalysis = await callAI(
+      analysisPrompt,
+      `Titel: ${title}\n\n` +
+      `${researchResult ? `Recherchierte Informationen (Perplexity):\n${researchResult}\n\n` : ''}` +
+      `Quell-Inhalt:\n${sourceContent.substring(0, 8000)}`
+    );
     console.log("Content analysis complete:", contentAnalysis?.theme?.mainTopic);
 
     // PHASE 2: Design World
@@ -313,7 +374,13 @@ WICHTIG: Erstelle KEIN visualTheme - das kommt aus Phase 2!
 Erstelle 4-6 Abschnitte mit einer Mischung aus Erklärung und interaktiven Übungen.
 ALLES AUF DEUTSCH!`;
 
-    const generatedContent = await callAI(contentPrompt, `Titel: ${title}\nFach: ${subject}\n\nWelt-Design:\n${JSON.stringify(worldDesign, null, 2)}\n\nQuellinhalt:\n${sourceContent.substring(0, 10000)}`);
+    const generatedContent = await callAI(
+      contentPrompt,
+      `Titel: ${title}\nFach: ${subject}\n\n` +
+      `${researchResult ? `Recherchierte Informationen (Perplexity):\n${researchResult}\n\n` : ''}` +
+      `Welt-Design:\n${JSON.stringify(worldDesign, null, 2)}\n\n` +
+      `Quellinhalt:\n${sourceContent.substring(0, 10000)}`
+    );
     console.log("Content generation complete with", generatedContent?.sections?.length, "sections");
 
     // PHASE 3.5: Generate unique React component code
