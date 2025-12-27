@@ -332,120 +332,75 @@ ALLES AUF DEUTSCH!`;
     console.log("Phase 3.5: Generating unique React component code...");
     await updateStatus(supabase, worldId, 'generating_component');
 
-    const componentPrompt = `Du bist ein preisgekrönter UI/UX Designer und Expert React Developer.
-Deine Aufgabe: Erstelle eine WUNDERSCHÖNE, PROFESSIONELLE und KOMPLETT EINZIGARTIGE Landing Page für eine Lernwelt.
+    const componentPrompt = `Du bist ein kreativer UI/UX Designer. Gestalte eine einzigartige Landing Page für dieses Lernthema.
 
-# 🎨 DESIGN PHILOSOPHIE
-- Moderne, elegante Ästhetik mit viel Weißraum (spacing)
-- Harmonische Farbpaletten mit subtilen Verläufen
-- Klare visuelle Hierarchie durch Größen und Abstände
-- Professionell, aber zugänglich und einladend
-- KEINE überladenen Designs - weniger ist mehr!
+DEINE KREATIVE AUFGABE:
+Lies das Thema genau. Überlege: Wie präsentiere ich DIESES spezifische Thema am besten?
+Wähle selbst welche Komponenten und welches Layout zum Inhalt passen.
+Jede Seite soll völlig anders sein - basierend auf dem individuellen Thema!
 
-# 🧩 VERFÜGBARE KOMPONENTEN
-Hero, Grid, Card, StorySection, Timeline, TimelineItem, ParallaxSection, FloatingElement
-Title, Subtitle, Paragraph, Icon, Badge, ProgressBar, ActionButton
+VERFÜGBARE KOMPONENTEN:
+Hero, Grid, Card, StorySection, Timeline, TimelineItem, ParallaxSection, FloatingElement, Title, Subtitle, Paragraph, Icon, Badge, ProgressBar, ActionButton
 
-# 🎯 FACH-SPEZIFISCHE DESIGN-RICHTLINIEN: ${subject}
+ICONS: Sparkles, Star, Rocket, Book, Globe, Lightbulb, Trophy, Target, Map, Compass, Heart, Zap
 
-${subject === 'Mathematik' ? `
-MATHEMATIK Design:
-- Farben: Kühle Töne (Blau, Cyan, Violett, Indigo)
-  → from-blue-500, from-cyan-600, from-indigo-500, from-violet-600
-- Layout: Strukturiert, Grid-basiert (2-3 Spalten)
-- Pattern: "grid" oder "dots" für geometrische Präzision
-- Icons: star, target, zap (Präzision & Logik)
-- Mood: Klar, strukturiert, präzise
-` : ''}${subject === 'Geschichte' ? `
-GESCHICHTE Design:
-- Farben: Warme, erdige Töne (Gold, Bernstein, Rot, Braun)
-  → from-amber-600, from-yellow-700, from-red-700, from-orange-600
-- Layout: Timeline oder Story-basiert (chronologisch)
-- Pattern: "waves" oder "organic" für historischen Flow
-- Icons: globe, map, compass, book (Entdeckung & Zeit)
-- Mood: Warm, nostalgisch, erzählend
-` : ''}${subject === 'Naturwissenschaft' || subject === 'Biologie' ? `
-NATURWISSENSCHAFT/BIOLOGIE Design:
-- Farben: Natürliche Töne (Grün, Türkis, Smaragd, Teal)
-  → from-green-500, from-emerald-600, from-teal-600, from-cyan-500
-- Layout: Organisch, asymmetrisch, fließend
-- Pattern: "waves" oder "organic" für Natur
-- Icons: globe, lightbulb, heart, sparkles (Leben & Entdeckung)
-- Mood: Frisch, lebendig, exploratif
-` : `
-ALLGEMEIN Design:
-- Farben: Wähle eine harmonische Palette passend zum Thema
-- Layout: Kreativ und themengerecht
-- Pattern: Passend zum Inhalt wählen
-- Icons: Thematisch sinnvoll
-`}
+FARB-INSPIRATIONEN (Tailwind):
+- Blau/Technisch: from-blue-500 to-cyan-600, from-indigo-500 to-violet-600
+- Grün/Natur: from-green-500 to-emerald-600, from-teal-500 to-cyan-600
+- Warm/Geschichte: from-amber-500 to-red-600, from-yellow-500 to-orange-600
+- Kreativ: from-purple-500 to-pink-600, from-rose-500 to-pink-600
+→ Wähle was zum THEMA passt!
 
-# ✅ DESIGN BEST PRACTICES
+DESIGN-PRINZIPIEN:
+- Harmonie & Ästhetik
+- Viel Weißraum (großzügige Abstände wie py-16, py-20, gap-8)
+- Klare Hierarchie (große Titles mit text-5xl/text-6xl)
+- Themengerechte Farben
 
-1. **Farbverläufe** (Gradients):
-   - Nutze 2-3 harmonische Farben: from-[farbe]-500 to-[farbe]-700
-   - Subtile Übergänge: from-blue-500 via-cyan-600 to-indigo-700
-   - NICHT zu grell! 500-700 Range ist ideal
+DEINE ENTSCHEIDUNGEN:
+→ Welche Komponenten nutze ich? (Hero? Timeline? Grid? Story? Parallax? Mix?)
+→ Wie viele Sections brauche ich? (2? 4? 6?)
+→ Welches Layout passt zum Thema? (Chronologisch? Kategorisch? Narrativ?)
+→ Welche Farben erzählen die Story am besten?
+→ Welche Icons passen zum Inhalt?
 
-2. **Spacing & Layout**:
-   - Hero: Große Abstände (py-24 oder py-32), zentriert
-   - Sections: Viel Padding (p-12, p-16), großzügige Margins
-   - Grid: gap-8 oder gap-12 für Luftigkeit
-   - NIEMALS alles vollpacken!
+WICHTIG:
+- KEINE feste Struktur! Entscheide basierend auf dem Thema!
+- JEDE Seite soll anders sein!
+- Root: <> ... </>
+- Deutsche Texte
+- NUR Komponenten aus der obigen Liste
 
-3. **Typographie**:
-   - Hero Title: text-5xl bis text-7xl, font-bold
-   - Section Titles: text-3xl bis text-4xl, mb-8
-   - Subtitles: text-xl, text-muted-foreground
-   - Paragraph: text-lg, leading-relaxed, max-w-2xl
+DENKE KREATIV: Was macht DIESES Thema einzigartig? Zeige es im Design!
 
-4. **Komponenten-Kombination**:
-   - Starte mit Hero (großer visueller Anker)
-   - 3-5 verschiedene Sections (Grid, Story, Timeline, Parallax)
-   - Abwechslung: Grid → Story → Timeline (nicht alles gleich!)
-   - FloatingElements für Akzente (nicht übertreiben!)
-
-5. **Icons & Badges**:
-   - Icons: size={40-64}, subtile Farben
-   - Badges: Sparsam einsetzen, als Akzente
-   - NICHT zu viele Icons auf einmal!
-
-6. **Cards**:
-   - hover-Effekt für Interaktivität
-   - p-6 oder p-8 für Innenabstände
-   - Maximal 2-4 Cards pro Grid-Row
-   - Einheitliche Höhe innerhalb einer Row
-
-# ⚠️ VERBOTEN
-- ❌ Generische/langweilige Layouts (sei kreativ!)
-- ❌ Zu viele Elemente (Fokus & Weißraum!)
-- ❌ Grell/aggressive Farben (subtil & harmonisch!)
-- ❌ Schlechte Hierarchie (klar strukturieren!)
-- ❌ Vorherige Designs kopieren (jede Welt MUSS anders sein!)
-
-# 📐 STRUKTUR-ANFORDERUNGEN
-- Root Element: <> ... </>
-- Deutsche Texte (professionell formuliert)
-- 4-6 Sections (variiere die Komponenten!)
-- Mindestens 1x Hero, 1x Grid, 1x Story/Timeline
-- Alle Komponenten aus der Safe-List verwenden
-
-# 🎭 KREATIVITÄT
-Erfinde dein EIGENES Layout! Kombiniere Komponenten auf neue Weise.
-KEINE zwei Welten dürfen gleich aussehen. Experimentiere mit:
-- Verschiedenen Grid-Layouts (2 vs 3 vs 4 Spalten)
-- Timeline horizontal oder vertikal
-- ParallaxSection mit unterschiedlichen Geschwindigkeiten
-- FloatingElements an verschiedenen Positionen
-
-Denke wie ein professioneller Designer: Harmonie, Balance, Weißraum, Hierarchie!
-
-Generiere NUR sauberen JSX Code, keine Markdown-Blöcke, keine Erklärungen!`;
+Generiere NUR JSX Code (keine Erklärungen, keine Markdown-Blöcke)!`;
 
     let generatedComponentCode: string | null = null;
     try {
       // Use callAIRaw for JSX generation (no JSON formatting)
-      const componentRaw = await callAIRaw(componentPrompt, `Titel: ${title}\nFach: ${subject}\n\nWorld Design:\n${JSON.stringify(worldDesign?.worldConcept || {}, null, 2)}\n\nContent Summary:\n${generatedContent.description || ''}`);
+      const userPrompt = `
+THEMA: ${title}
+FACH: ${subject}
+
+INHALT & KONTEXT:
+${generatedContent.description || 'Keine Beschreibung vorhanden'}
+
+WORLD CONCEPT:
+- Name: ${worldDesign?.worldConcept?.name || 'Unbekannt'}
+- Tagline: ${worldDesign?.worldConcept?.tagline || ''}
+- Narrative: ${worldDesign?.worldConcept?.narrative || ''}
+- Layout Style: ${worldDesign?.worldConcept?.layoutStyle || ''}
+
+FARBEN (aus World Design):
+- Primary Hue: ${worldDesign?.visualIdentity?.primaryHue || 'nicht definiert'}
+- Accent Hue: ${worldDesign?.visualIdentity?.accentHue || 'nicht definiert'}
+- Mood: ${worldDesign?.visualIdentity?.mood || 'nicht definiert'}
+
+BASIERE DEIN DESIGN AUF DIESEM SPEZIFISCHEN THEMA!
+Überlege: Was macht "${title}" einzigartig? Wie erzähle ich diese Story visuell?
+      `.trim();
+
+      const componentRaw = await callAIRaw(componentPrompt, userPrompt);
 
       console.log("Component generation raw result type:", typeof componentRaw);
 
