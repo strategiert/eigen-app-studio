@@ -332,48 +332,91 @@ ALLES AUF DEUTSCH!`;
     console.log("Phase 3.5: Generating unique React component code...");
     await updateStatus(supabase, worldId, 'generating_component');
 
-    const componentPrompt = `Du bist ein kreativer UI/UX Designer. Gestalte eine einzigartige Landing Page für dieses Lernthema.
+    const componentPrompt = `You are an expert React developer and UI/UX designer building a beautiful, responsive learning world landing page.
 
-DEINE KREATIVE AUFGABE:
-Lies das Thema genau. Überlege: Wie präsentiere ich DIESES spezifische Thema am besten?
-Wähle selbst welche Komponenten und welches Layout zum Inhalt passen.
-Jede Seite soll völlig anders sein - basierend auf dem individuellen Thema!
+# PRIMARY OBJECTIVE
+Design a COMPLETELY UNIQUE page for this specific learning topic. Each world must look distinctly different - no templates, no patterns.
 
-VERFÜGBARE KOMPONENTEN:
+# TECHNOLOGY STACK
+- React + Tailwind CSS
+- Available safe components (pre-approved, no imports needed)
+- Responsive design mandatory
+- German text content
+
+# AVAILABLE COMPONENTS
 Hero, Grid, Card, StorySection, Timeline, TimelineItem, ParallaxSection, FloatingElement, Title, Subtitle, Paragraph, Icon, Badge, ProgressBar, ActionButton
 
-ICONS: Sparkles, Star, Rocket, Book, Globe, Lightbulb, Trophy, Target, Map, Compass, Heart, Zap
+# AVAILABLE ICONS
+Sparkles, Star, Rocket, Book, Globe, Lightbulb, Trophy, Target, Map, Compass, Heart, Zap
 
-FARB-INSPIRATIONEN (Tailwind):
-- Blau/Technisch: from-blue-500 to-cyan-600, from-indigo-500 to-violet-600
-- Grün/Natur: from-green-500 to-emerald-600, from-teal-500 to-cyan-600
-- Warm/Geschichte: from-amber-500 to-red-600, from-yellow-500 to-orange-600
-- Kreativ: from-purple-500 to-pink-600, from-rose-500 to-pink-600
-→ Wähle was zum THEMA passt!
+# DESIGN PHILOSOPHY (Lovable-inspired)
 
-DESIGN-PRINZIPIEN:
-- Harmonie & Ästhetik
-- Viel Weißraum (großzügige Abstände wie py-16, py-20, gap-8)
-- Klare Hierarchie (große Titles mit text-5xl/text-6xl)
-- Themengerechte Farben
+**Semantic Color System**
+Use Tailwind gradients semantically based on theme:
+- Technical/Math: from-blue-500 to-cyan-600, from-indigo-500 to-violet-600
+- Nature/Biology: from-green-500 to-emerald-600, from-teal-500 to-cyan-600
+- History/Warm: from-amber-500 to-red-600, from-yellow-600 to-orange-600
+- Creative: from-purple-500 to-pink-600, from-rose-500 to-fuchsia-600
+→ AVOID generic purple/indigo/blue unless theme-appropriate!
 
-DEINE ENTSCHEIDUNGEN:
-→ Welche Komponenten nutze ich? (Hero? Timeline? Grid? Story? Parallax? Mix?)
-→ Wie viele Sections brauche ich? (2? 4? 6?)
-→ Welches Layout passt zum Thema? (Chronologisch? Kategorisch? Narrativ?)
-→ Welche Farben erzählen die Story am besten?
-→ Welche Icons passen zum Inhalt?
+**Spacing & Hierarchy**
+- Generous whitespace: py-16, py-20, py-24
+- Clear typography hierarchy: text-5xl/text-6xl/text-7xl for hero titles
+- Consistent gaps: gap-6, gap-8, gap-12
+- Responsive padding: p-6, p-8, p-12
 
-WICHTIG:
-- KEINE feste Struktur! Entscheide basierend auf dem Thema!
-- JEDE Seite soll anders sein!
-- Root: <> ... </>
-- Deutsche Texte
-- NUR Komponenten aus der obigen Liste
+**Component Composition**
+Think modular, like shadcn/ui:
+- Customize components for this specific theme
+- Vary layouts: Grid columns (2/3/4), Timeline orientation, Story flow
+- Mix components creatively - no fixed patterns
+- Add FloatingElements sparingly for visual interest
 
-DENKE KREATIV: Was macht DIESES Thema einzigartig? Zeige es im Design!
+# YOUR AUTONOMOUS DECISIONS
 
-Generiere NUR JSX Code (keine Erklärungen, keine Markdown-Blöcke)!`;
+Analyze the theme deeply, then decide:
+1. **Layout Strategy**: What best presents THIS content? (Chronological? Categorical? Narrative? Mixed?)
+2. **Component Selection**: Which components fit? (Hero + Grid? Timeline + Story? Parallax + Cards?)
+3. **Visual Identity**: What colors/mood match the theme?
+4. **Content Structure**: How many sections? (2? 4? 6? Whatever fits!)
+5. **Responsive Behavior**: Mobile-first design decisions
+
+# CRITICAL REQUIREMENTS
+
+✅ **DO**:
+- Make each world visually distinct from all others
+- Base design on the SPECIFIC TOPIC, not just subject
+- Use generous spacing (avoid crowding)
+- Create clear visual hierarchy
+- Choose theme-appropriate colors
+- Build responsive layouts
+- Write clean, semantic JSX
+
+❌ **DON'T**:
+- Use fixed structural patterns
+- Copy previous designs
+- Use generic/boring layouts
+- Overcrowd with elements
+- Use inappropriate colors (e.g., blue for history)
+- Hardcode repetitive structures
+
+# OUTPUT FORMAT
+- Root element: <> ... </>
+- German text content
+- Clean JSX only (no markdown blocks, no explanations)
+- Only use listed components
+
+# WORKFLOW (Same.dev-inspired)
+1. Read theme context carefully
+2. Determine optimal presentation strategy
+3. Select appropriate components & layout
+4. Choose semantic colors for theme
+5. Compose unique, beautiful page
+6. Complete autonomously - no half-measures
+
+Think: "What makes THIS topic special? How do I show it visually?"
+
+Generate ONLY clean JSX code.`;
 
     let generatedComponentCode: string | null = null;
     try {
