@@ -332,39 +332,115 @@ ALLES AUF DEUTSCH!`;
     console.log("Phase 3.5: Generating unique React component code...");
     await updateStatus(supabase, worldId, 'generating_component');
 
-    const componentPrompt = `Du bist ein Expert React Developer und Creative Designer.
-Deine Aufgabe: Erstelle eine KOMPLETT EINZIGARTIGE React-Seite für eine Lernwelt.
+    const componentPrompt = `Du bist ein preisgekrönter UI/UX Designer und Expert React Developer.
+Deine Aufgabe: Erstelle eine WUNDERSCHÖNE, PROFESSIONELLE und KOMPLETT EINZIGARTIGE Landing Page für eine Lernwelt.
 
-# VERFÜGBARE SAFE COMPONENTS
-- Hero, Grid, Card, StorySection, Timeline, TimelineItem
-- Title, Subtitle, Paragraph, Icon, Badge, ProgressBar, ActionButton
-- FloatingElement, ParallaxSection
+# 🎨 DESIGN PHILOSOPHIE
+- Moderne, elegante Ästhetik mit viel Weißraum (spacing)
+- Harmonische Farbpaletten mit subtilen Verläufen
+- Klare visuelle Hierarchie durch Größen und Abstände
+- Professionell, aber zugänglich und einladend
+- KEINE überladenen Designs - weniger ist mehr!
 
-# DESIGN FÜR: ${subject}
-${subject === 'Mathematik' ? '→ Grid-Layout, Blau/Cyan/Violett, Icons: star/target, Pattern: grid' : ''}
-${subject === 'Geschichte' ? '→ Timeline-Layout, Gold/Rot/Braun, Icons: globe/map, Pattern: waves' : ''}
-${subject === 'Naturwissenschaft' || subject === 'Biologie' ? '→ Organisch, Grün/Türkis, Icons: globe/lightbulb, Pattern: waves' : ''}
+# 🧩 VERFÜGBARE KOMPONENTEN
+Hero, Grid, Card, StorySection, Timeline, TimelineItem, ParallaxSection, FloatingElement
+Title, Subtitle, Paragraph, Icon, Badge, ProgressBar, ActionButton
 
-WICHTIG:
-1. NUR Safe Components verwenden (keine imports!)
-2. Root Element: <> </>
-3. Deutsche Texte
-4. Fach-spezifische Farben (Tailwind: from-X-500 to-Y-600)
-5. Mindestens 3-5 Sections
-6. KOMPLETT EINZIGARTIG - kein Template!
+# 🎯 FACH-SPEZIFISCHE DESIGN-RICHTLINIEN: ${subject}
 
-BEISPIEL-STRUKTUR (STARK VARIIEREN!):
-<>
-  <Hero gradient="from-purple-600 to-pink-600" pattern="dots">
-    <Title size="text-6xl" glow>{Titel}</Title>
-    <Subtitle>{Beschreibung}</Subtitle>
-  </Hero>
-  <Grid columns={3} gap={6}>
-    <Card hover><Icon name="star" size={48} /><h3>Kapitel</h3></Card>
-  </Grid>
-</>
+${subject === 'Mathematik' ? `
+MATHEMATIK Design:
+- Farben: Kühle Töne (Blau, Cyan, Violett, Indigo)
+  → from-blue-500, from-cyan-600, from-indigo-500, from-violet-600
+- Layout: Strukturiert, Grid-basiert (2-3 Spalten)
+- Pattern: "grid" oder "dots" für geometrische Präzision
+- Icons: star, target, zap (Präzision & Logik)
+- Mood: Klar, strukturiert, präzise
+` : ''}${subject === 'Geschichte' ? `
+GESCHICHTE Design:
+- Farben: Warme, erdige Töne (Gold, Bernstein, Rot, Braun)
+  → from-amber-600, from-yellow-700, from-red-700, from-orange-600
+- Layout: Timeline oder Story-basiert (chronologisch)
+- Pattern: "waves" oder "organic" für historischen Flow
+- Icons: globe, map, compass, book (Entdeckung & Zeit)
+- Mood: Warm, nostalgisch, erzählend
+` : ''}${subject === 'Naturwissenschaft' || subject === 'Biologie' ? `
+NATURWISSENSCHAFT/BIOLOGIE Design:
+- Farben: Natürliche Töne (Grün, Türkis, Smaragd, Teal)
+  → from-green-500, from-emerald-600, from-teal-600, from-cyan-500
+- Layout: Organisch, asymmetrisch, fließend
+- Pattern: "waves" oder "organic" für Natur
+- Icons: globe, lightbulb, heart, sparkles (Leben & Entdeckung)
+- Mood: Frisch, lebendig, exploratif
+` : `
+ALLGEMEIN Design:
+- Farben: Wähle eine harmonische Palette passend zum Thema
+- Layout: Kreativ und themengerecht
+- Pattern: Passend zum Inhalt wählen
+- Icons: Thematisch sinnvoll
+`}
 
-Generiere NUR JSX, keine \`\`\`, keine Erklärungen!`;
+# ✅ DESIGN BEST PRACTICES
+
+1. **Farbverläufe** (Gradients):
+   - Nutze 2-3 harmonische Farben: from-[farbe]-500 to-[farbe]-700
+   - Subtile Übergänge: from-blue-500 via-cyan-600 to-indigo-700
+   - NICHT zu grell! 500-700 Range ist ideal
+
+2. **Spacing & Layout**:
+   - Hero: Große Abstände (py-24 oder py-32), zentriert
+   - Sections: Viel Padding (p-12, p-16), großzügige Margins
+   - Grid: gap-8 oder gap-12 für Luftigkeit
+   - NIEMALS alles vollpacken!
+
+3. **Typographie**:
+   - Hero Title: text-5xl bis text-7xl, font-bold
+   - Section Titles: text-3xl bis text-4xl, mb-8
+   - Subtitles: text-xl, text-muted-foreground
+   - Paragraph: text-lg, leading-relaxed, max-w-2xl
+
+4. **Komponenten-Kombination**:
+   - Starte mit Hero (großer visueller Anker)
+   - 3-5 verschiedene Sections (Grid, Story, Timeline, Parallax)
+   - Abwechslung: Grid → Story → Timeline (nicht alles gleich!)
+   - FloatingElements für Akzente (nicht übertreiben!)
+
+5. **Icons & Badges**:
+   - Icons: size={40-64}, subtile Farben
+   - Badges: Sparsam einsetzen, als Akzente
+   - NICHT zu viele Icons auf einmal!
+
+6. **Cards**:
+   - hover-Effekt für Interaktivität
+   - p-6 oder p-8 für Innenabstände
+   - Maximal 2-4 Cards pro Grid-Row
+   - Einheitliche Höhe innerhalb einer Row
+
+# ⚠️ VERBOTEN
+- ❌ Generische/langweilige Layouts (sei kreativ!)
+- ❌ Zu viele Elemente (Fokus & Weißraum!)
+- ❌ Grell/aggressive Farben (subtil & harmonisch!)
+- ❌ Schlechte Hierarchie (klar strukturieren!)
+- ❌ Vorherige Designs kopieren (jede Welt MUSS anders sein!)
+
+# 📐 STRUKTUR-ANFORDERUNGEN
+- Root Element: <> ... </>
+- Deutsche Texte (professionell formuliert)
+- 4-6 Sections (variiere die Komponenten!)
+- Mindestens 1x Hero, 1x Grid, 1x Story/Timeline
+- Alle Komponenten aus der Safe-List verwenden
+
+# 🎭 KREATIVITÄT
+Erfinde dein EIGENES Layout! Kombiniere Komponenten auf neue Weise.
+KEINE zwei Welten dürfen gleich aussehen. Experimentiere mit:
+- Verschiedenen Grid-Layouts (2 vs 3 vs 4 Spalten)
+- Timeline horizontal oder vertikal
+- ParallaxSection mit unterschiedlichen Geschwindigkeiten
+- FloatingElements an verschiedenen Positionen
+
+Denke wie ein professioneller Designer: Harmonie, Balance, Weißraum, Hierarchie!
+
+Generiere NUR sauberen JSX Code, keine Markdown-Blöcke, keine Erklärungen!`;
 
     let generatedComponentCode: string | null = null;
     try {

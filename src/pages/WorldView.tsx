@@ -345,20 +345,16 @@ export default function WorldView() {
     );
   }
 
-  // DYNAMIC RENDERING: If world has AI-generated component code, render it instead of template
+  // DYNAMIC RENDERING: If world has AI-generated component code, render it
   if (world.generated_component_code && world.generated_component_code.trim().length > 0) {
     console.log('🎨 Rendering AI-generated world component for:', world.title);
 
     return (
       <DynamicWorldRenderer
         code={world.generated_component_code}
-        fallback={
-          // Fallback to template if dynamic rendering fails
-          renderTemplateWorld()
-        }
         onError={(error) => {
-          console.error('Dynamic world rendering failed:', error);
-          // Could track this error in analytics
+          console.error('❌ Dynamic world rendering failed:', error);
+          // Error is displayed by DynamicWorldRenderer itself
         }}
       />
     );
@@ -597,8 +593,33 @@ export default function WorldView() {
       />
     </div>
   );
-  } // End of renderTemplateWorld()
+  } // End of renderTemplateWorld() - DEPRECATED, kept for reference only
 
-  // If no generated component code, render template world
-  return renderTemplateWorld();
+  // If no generated component code, show generation pending message
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="max-w-md text-center p-8">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+        <h2 className="text-2xl font-bold text-foreground mb-2">
+          Welt wird generiert...
+        </h2>
+        <p className="text-muted-foreground mb-4">
+          Die KI erstellt gerade eine einzigartige Lernwelt für dich. Dies kann 30-60 Sekunden dauern.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Status: {world.status}
+        </p>
+        {world.status === 'failed' && (
+          <div className="mt-4 p-4 bg-destructive/10 rounded-lg">
+            <p className="text-destructive font-semibold">
+              ❌ Generierung fehlgeschlagen
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Bitte versuche es erneut oder kontaktiere den Support.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

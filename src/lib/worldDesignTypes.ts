@@ -75,22 +75,32 @@ function safeColorValues(design: WorldDesign | null): {
 } {
   const vi = design?.visualIdentity as any;
 
-  // Try primaryHue directly, fallback to parsing primaryColor string
-  let primaryHue = typeof vi?.primaryHue === 'number' ? vi.primaryHue : null;
+  // Helper to safely parse numeric values (handles both numbers and numeric strings)
+  const parseNumeric = (value: any): number | null => {
+    if (typeof value === 'number' && !isNaN(value)) return value;
+    if (typeof value === 'string') {
+      const parsed = parseFloat(value);
+      if (!isNaN(parsed)) return parsed;
+    }
+    return null;
+  };
+
+  // Try primaryHue directly (supports both number and numeric string), fallback to parsing primaryColor string
+  let primaryHue = parseNumeric(vi?.primaryHue);
   if (primaryHue === null && vi?.primaryColor) {
     primaryHue = parseHueFromHSL(vi.primaryColor);
   }
   primaryHue = primaryHue ?? 220;
 
-  // Try saturation directly, fallback to parsing from primaryColor string
-  let saturation = typeof vi?.saturation === 'number' ? vi.saturation : null;
+  // Try saturation directly (supports both number and numeric string), fallback to parsing from primaryColor string
+  let saturation = parseNumeric(vi?.saturation);
   if (saturation === null && vi?.primaryColor) {
     saturation = parseSaturationFromHSL(vi.primaryColor);
   }
   saturation = saturation ?? 70;
 
-  // Try accentHue directly, fallback to parsing accentColor string
-  let accentHue = typeof vi?.accentHue === 'number' ? vi.accentHue : null;
+  // Try accentHue directly (supports both number and numeric string), fallback to parsing accentColor string
+  let accentHue = parseNumeric(vi?.accentHue);
   if (accentHue === null && vi?.accentColor) {
     accentHue = parseHueFromHSL(vi.accentColor);
   }
