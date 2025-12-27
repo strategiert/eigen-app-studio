@@ -31,10 +31,59 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
+    // Trim inputs
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedSubject = subject.trim();
+    const trimmedMessage = message.trim();
+
+    // Validate input lengths to prevent abuse
+    const MAX_NAME_LENGTH = 100;
+    const MAX_EMAIL_LENGTH = 255;
+    const MAX_SUBJECT_LENGTH = 200;
+    const MAX_MESSAGE_LENGTH = 5000;
+
+    if (trimmedName.length > MAX_NAME_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `Name darf maximal ${MAX_NAME_LENGTH} Zeichen lang sein` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (trimmedEmail.length > MAX_EMAIL_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `E-Mail darf maximal ${MAX_EMAIL_LENGTH} Zeichen lang sein` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (trimmedSubject.length > MAX_SUBJECT_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `Betreff darf maximal ${MAX_SUBJECT_LENGTH} Zeichen lang sein` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (trimmedMessage.length > MAX_MESSAGE_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `Nachricht darf maximal ${MAX_MESSAGE_LENGTH} Zeichen lang sein` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate name characters (letters, spaces, hyphens, common accented chars)
+    const nameRegex = /^[a-zA-ZäöüÄÖÜßàáâãèéêëìíîïòóôõùúûýÿñçÀÁÂÃÈÉÊËÌÍÎÏÒÓÔÕÙÚÛÝŸÑÇ\s\-']+$/;
+    if (!nameRegex.test(trimmedName)) {
+      return new Response(
+        JSON.stringify({ error: "Name enthält ungültige Zeichen" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      console.error("Invalid email format:", email);
+    if (!emailRegex.test(trimmedEmail)) {
+      console.error("Invalid email format");
       return new Response(
         JSON.stringify({ error: "Ungültige E-Mail-Adresse" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -46,14 +95,14 @@ serve(async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Store message in database
+    // Store message in database (using already trimmed values)
     const { data, error: dbError } = await supabase
       .from("contact_messages")
       .insert({
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        subject: subject.trim(),
-        message: message.trim(),
+        name: trimmedName,
+        email: trimmedEmail,
+        subject: trimmedSubject,
+        message: trimmedMessage,
         status: "new",
       })
       .select()
