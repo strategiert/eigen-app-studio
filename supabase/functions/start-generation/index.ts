@@ -320,120 +320,118 @@ ALLES AUF DEUTSCH!`;
     console.log("Phase 3.5: Generating unique React component code...");
     await updateStatus(supabase, worldId, 'generating_component');
 
-    const componentPrompt = `Du bist ein preisgekrönter UI/UX Designer und Expert React Developer.
-Deine Aufgabe: Erstelle eine WUNDERSCHÖNE, PROFESSIONELLE und KOMPLETT EINZIGARTIGE Landing Page für eine Lernwelt.
+    const componentPrompt = `You are an expert React developer and UI/UX designer building a beautiful, responsive learning world landing page.
 
-# 🎨 DESIGN PHILOSOPHIE
-- Moderne, elegante Ästhetik mit viel Weißraum (spacing)
-- Harmonische Farbpaletten mit subtilen Verläufen
-- Klare visuelle Hierarchie durch Größen und Abstände
-- Professionell, aber zugänglich und einladend
-- KEINE überladenen Designs - weniger ist mehr!
+# PRIMARY OBJECTIVE
+Design a COMPLETELY UNIQUE page for this specific learning topic. Each world must look distinctly different - no templates, no patterns.
 
-# 🧩 VERFÜGBARE KOMPONENTEN
-Hero, Grid, Card, StorySection, Timeline, TimelineItem, ParallaxSection, FloatingElement
-Title, Subtitle, Paragraph, Icon, Badge, ProgressBar, ActionButton
+# TECHNOLOGY STACK
+- React + Tailwind CSS
+- Available safe components (pre-approved, no imports needed)
+- Responsive design mandatory
+- German text content
 
-# 🎯 FACH-SPEZIFISCHE DESIGN-RICHTLINIEN: ${subject}
+# AVAILABLE COMPONENTS
+Hero, Grid, Card, StorySection, Timeline, TimelineItem, ParallaxSection, FloatingElement, Title, Subtitle, Paragraph, Icon, Badge, ProgressBar, ActionButton
 
-${subject === 'Mathematik' ? `
-MATHEMATIK Design:
-- Farben: Kühle Töne (Blau, Cyan, Violett, Indigo)
-  → from-blue-500, from-cyan-600, from-indigo-500, from-violet-600
-- Layout: Strukturiert, Grid-basiert (2-3 Spalten)
-- Pattern: "grid" oder "dots" für geometrische Präzision
-- Icons: star, target, zap (Präzision & Logik)
-- Mood: Klar, strukturiert, präzise
-` : ''}${subject === 'Geschichte' ? `
-GESCHICHTE Design:
-- Farben: Warme, erdige Töne (Gold, Bernstein, Rot, Braun)
-  → from-amber-600, from-yellow-700, from-red-700, from-orange-600
-- Layout: Timeline oder Story-basiert (chronologisch)
-- Pattern: "waves" oder "organic" für historischen Flow
-- Icons: globe, map, compass, book (Entdeckung & Zeit)
-- Mood: Warm, nostalgisch, erzählend
-` : ''}${subject === 'Naturwissenschaft' || subject === 'Biologie' ? `
-NATURWISSENSCHAFT/BIOLOGIE Design:
-- Farben: Natürliche Töne (Grün, Türkis, Smaragd, Teal)
-  → from-green-500, from-emerald-600, from-teal-600, from-cyan-500
-- Layout: Organisch, asymmetrisch, fließend
-- Pattern: "waves" oder "organic" für Natur
-- Icons: globe, lightbulb, heart, sparkles (Leben & Entdeckung)
-- Mood: Frisch, lebendig, exploratif
-` : `
-ALLGEMEIN Design:
-- Farben: Wähle eine harmonische Palette passend zum Thema
-- Layout: Kreativ und themengerecht
-- Pattern: Passend zum Inhalt wählen
-- Icons: Thematisch sinnvoll
-`}
+# AVAILABLE ICONS
+Sparkles, Star, Rocket, Book, Globe, Lightbulb, Trophy, Target, Map, Compass, Heart, Zap
 
-# ✅ DESIGN BEST PRACTICES
+# DESIGN PHILOSOPHY (Lovable-inspired)
 
-1. **Farbverläufe** (Gradients):
-   - Nutze 2-3 harmonische Farben: from-[farbe]-500 to-[farbe]-700
-   - Subtile Übergänge: from-blue-500 via-cyan-600 to-indigo-700
-   - NICHT zu grell! 500-700 Range ist ideal
+**Semantic Color System**
+Use Tailwind gradients semantically based on theme:
+- Technical/Math: from-blue-500 to-cyan-600, from-indigo-500 to-violet-600
+- Nature/Biology: from-green-500 to-emerald-600, from-teal-500 to-cyan-600
+- History/Warm: from-amber-500 to-red-600, from-yellow-600 to-orange-600
+- Creative: from-purple-500 to-pink-600, from-rose-500 to-fuchsia-600
+→ AVOID generic purple/indigo/blue unless theme-appropriate!
 
-2. **Spacing & Layout**:
-   - Hero: Große Abstände (py-24 oder py-32), zentriert
-   - Sections: Viel Padding (p-12, p-16), großzügige Margins
-   - Grid: gap-8 oder gap-12 für Luftigkeit
-   - NIEMALS alles vollpacken!
+**Spacing & Hierarchy**
+- Generous whitespace: py-16, py-20, py-24
+- Clear typography hierarchy: text-5xl/text-6xl/text-7xl for hero titles
+- Consistent gaps: gap-6, gap-8, gap-12
+- Responsive padding: p-6, p-8, p-12
 
-3. **Typographie**:
-   - Hero Title: text-5xl bis text-7xl, font-bold
-   - Section Titles: text-3xl bis text-4xl, mb-8
-   - Subtitles: text-xl, text-muted-foreground
-   - Paragraph: text-lg, leading-relaxed, max-w-2xl
+**Component Composition**
+Think modular, like shadcn/ui:
+- Customize components for this specific theme
+- Vary layouts: Grid columns (2/3/4), Timeline orientation, Story flow
+- Mix components creatively - no fixed patterns
+- Add FloatingElements sparingly for visual interest
 
-4. **Komponenten-Kombination**:
-   - Starte mit Hero (großer visueller Anker)
-   - 3-5 verschiedene Sections (Grid, Story, Timeline, Parallax)
-   - Abwechslung: Grid → Story → Timeline (nicht alles gleich!)
-   - FloatingElements für Akzente (nicht übertreiben!)
+# YOUR AUTONOMOUS DECISIONS
 
-5. **Icons & Badges**:
-   - Icons: size={40-64}, subtile Farben
-   - Badges: Sparsam einsetzen, als Akzente
-   - NICHT zu viele Icons auf einmal!
+Analyze the theme deeply, then decide:
+1. **Layout Strategy**: What best presents THIS content? (Chronological? Categorical? Narrative? Mixed?)
+2. **Component Selection**: Which components fit? (Hero + Grid? Timeline + Story? Parallax + Cards?)
+3. **Visual Identity**: What colors/mood match the theme?
+4. **Content Structure**: How many sections? (2? 4? 6? Whatever fits!)
+5. **Responsive Behavior**: Mobile-first design decisions
 
-6. **Cards**:
-   - hover-Effekt für Interaktivität
-   - p-6 oder p-8 für Innenabstände
-   - Maximal 2-4 Cards pro Grid-Row
-   - Einheitliche Höhe innerhalb einer Row
+# CRITICAL REQUIREMENTS
 
-# ⚠️ VERBOTEN
-- ❌ Generische/langweilige Layouts (sei kreativ!)
-- ❌ Zu viele Elemente (Fokus & Weißraum!)
-- ❌ Grell/aggressive Farben (subtil & harmonisch!)
-- ❌ Schlechte Hierarchie (klar strukturieren!)
-- ❌ Vorherige Designs kopieren (jede Welt MUSS anders sein!)
+✅ **DO**:
+- Make each world visually distinct from all others
+- Base design on the SPECIFIC TOPIC, not just subject
+- Use generous spacing (avoid crowding)
+- Create clear visual hierarchy
+- Choose theme-appropriate colors
+- Build responsive layouts
+- Write clean, semantic JSX
 
-# 📐 STRUKTUR-ANFORDERUNGEN
-- Root Element: <> ... </>
-- Deutsche Texte (professionell formuliert)
-- 4-6 Sections (variiere die Komponenten!)
-- Mindestens 1x Hero, 1x Grid, 1x Story/Timeline
-- Alle Komponenten aus der Safe-List verwenden
+❌ **DON'T**:
+- Use fixed structural patterns
+- Copy previous designs
+- Use generic/boring layouts
+- Overcrowd with elements
+- Use inappropriate colors (e.g., blue for history)
+- Hardcode repetitive structures
 
-# 🎭 KREATIVITÄT
-Erfinde dein EIGENES Layout! Kombiniere Komponenten auf neue Weise.
-KEINE zwei Welten dürfen gleich aussehen. Experimentiere mit:
-- Verschiedenen Grid-Layouts (2 vs 3 vs 4 Spalten)
-- Timeline horizontal oder vertikal
-- ParallaxSection mit unterschiedlichen Geschwindigkeiten
-- FloatingElements an verschiedenen Positionen
+# OUTPUT FORMAT
+- Root element: <> ... </>
+- German text content
+- Clean JSX only (no markdown blocks, no explanations)
+- Only use listed components
 
-Denke wie ein professioneller Designer: Harmonie, Balance, Weißraum, Hierarchie!
+# WORKFLOW (Same.dev-inspired)
+1. Read theme context carefully
+2. Determine optimal presentation strategy
+3. Select appropriate components & layout
+4. Choose semantic colors for theme
+5. Compose unique, beautiful page
+6. Complete autonomously - no half-measures
 
-Generiere NUR sauberen JSX Code, keine Markdown-Blöcke, keine Erklärungen!`;
+Think: "What makes THIS topic special? How do I show it visually?"
+
+Generate ONLY clean JSX code.`;
 
     let generatedComponentCode: string | null = null;
     try {
       // Use callAIRaw for JSX generation (no JSON formatting)
-      const componentRaw = await callAIRaw(componentPrompt, `Titel: ${title}\nFach: ${subject}\n\nWorld Design:\n${JSON.stringify(worldDesign?.worldConcept || {}, null, 2)}\n\nContent Summary:\n${generatedContent.description || ''}`);
+      const userPrompt = `
+THEMA: ${title}
+FACH: ${subject}
+
+INHALT & KONTEXT:
+${generatedContent.description || 'Keine Beschreibung vorhanden'}
+
+WORLD CONCEPT:
+- Name: ${worldDesign?.worldConcept?.name || 'Unbekannt'}
+- Tagline: ${worldDesign?.worldConcept?.tagline || ''}
+- Narrative: ${worldDesign?.worldConcept?.narrative || ''}
+- Layout Style: ${worldDesign?.worldConcept?.layoutStyle || ''}
+
+FARBEN (aus World Design):
+- Primary Hue: ${worldDesign?.visualIdentity?.primaryHue || 'nicht definiert'}
+- Accent Hue: ${worldDesign?.visualIdentity?.accentHue || 'nicht definiert'}
+- Mood: ${worldDesign?.visualIdentity?.mood || 'nicht definiert'}
+
+BASIERE DEIN DESIGN AUF DIESEM SPEZIFISCHEN THEMA!
+Überlege: Was macht "${title}" einzigartig? Wie erzähle ich diese Story visuell?
+      `.trim();
+
+      const componentRaw = await callAIRaw(componentPrompt, userPrompt);
 
       console.log("Component generation raw result type:", typeof componentRaw);
 
