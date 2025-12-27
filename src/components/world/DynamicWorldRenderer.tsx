@@ -93,8 +93,16 @@ export function DynamicWorldRenderer({
           <Alert variant="destructive">
             <AlertCircle className="h-5 w-5" />
             <AlertDescription className="mt-2">
-              <div className="font-semibold mb-2">Fehler beim Laden der Lernwelt</div>
-              <div className="text-sm opacity-90">
+              <div className="font-semibold mb-2">🔴 KI-generiertes Layout konnte nicht geladen werden</div>
+              <div className="text-sm opacity-90 mb-4">
+                Die AI hat einen fehlerhaften Code generiert. Dies kann passieren, wenn:
+              </div>
+              <ul className="text-sm opacity-90 list-disc list-inside space-y-1">
+                <li>Nicht verfügbare Komponenten verwendet wurden</li>
+                <li>Die JSX-Syntax fehlerhaft ist</li>
+                <li>Props falsch übergeben wurden</li>
+              </ul>
+              <div className="text-sm opacity-90 mt-4 font-mono bg-background/50 p-2 rounded">
                 {errorMessage}
               </div>
             </AlertDescription>
@@ -105,10 +113,19 @@ export function DynamicWorldRenderer({
               <RefreshCw className="mr-2 h-4 w-4" />
               Erneut versuchen
             </Button>
+            <Button onClick={() => window.location.reload()} variant="default">
+              Seite neu laden
+            </Button>
+          </div>
+
+          <div className="text-sm text-muted-foreground text-center">
+            Diese Welt muss möglicherweise neu generiert werden.<br />
+            Kontaktiere den Admin oder erstelle eine neue Welt.
           </div>
 
           {process.env.NODE_ENV === 'development' && (
             <div className="bg-muted p-4 rounded-lg">
+              <div className="text-xs font-semibold mb-2">Generated Code (Development):</div>
               <div className="text-xs font-mono whitespace-pre-wrap overflow-auto max-h-96">
                 {code}
               </div>
